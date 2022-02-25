@@ -69,13 +69,14 @@ df.insN$InsNumber_N <- as.factor(df.insN$InsNumber_N)
 ggplot(data=df.insN, aes(x=factor(InsNumber_N))) +
   geom_bar(stat="count", fill="lightblue") +
   stat_count(geom="text", size=3, aes(label=..count..)) +
-  ggtitle("Number of Cows and Number of AI") + xlab("Number of AI") 
+  ggtitle("Number of Cows and Number of AI") + xlab("Number of AI")
 table(df.ins1$InsNumber_1)
 str(df.insN)
 df.data <- merge(df.ins1, df.insN, by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), all.y=TRUE, sort=F)
 df.table <- df.preg1 %>%
-  distinct(FarmNo, CowId, Lactation, .keep_all=TRUE) 
-  
+  distinct(FarmNo, CowId, Lactation, .keep_all=TRUE)
+
+## TODO
 #merge pregnancy data into one data.frame
 preg <- data.frame()
 preg <- merge(df.data, df.table, by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), all.y=TRUE, sort=F)
@@ -110,7 +111,7 @@ preg$PregDate_N <- as.Date(preg$PregDate_N)
 preg$InsDate_N <- as.Date(preg$InsDate_N)
 preg$ins.preg <- as.numeric(difftime(preg$PregDate_N, preg$InsDate_N, units="days"))
 summary(preg$ins.preg1)
-preg$ins.preg <- ifelse((preg$InsNumber_N==1), difftime(preg$PregDate_1, preg$InsDate_1, units="days"), 
+preg$ins.preg <- ifelse((preg$InsNumber_N==1), difftime(preg$PregDate_1, preg$InsDate_1, units="days"),
                         difftime(preg$PregDate_N, preg$InsDate_N, units="days"))
 preg$ins.preg <- as.numeric(preg$ins.preg)
 summary(preg$ins.preg)
@@ -122,7 +123,7 @@ preg$Endtime <- as.numeric(difftime(preg$InsDate_N, preg$CalvingDate, units="day
 summary(preg$Endtime)
 hist(preg$Endtime)
 
-preg$Endtime1 <- ifelse((preg$InsNumber_N==1), difftime(preg$InsDate_1, preg$CalvingDate, units="days"), 
+preg$Endtime1 <- ifelse((preg$InsNumber_N==1), difftime(preg$InsDate_1, preg$CalvingDate, units="days"),
                         difftime(preg$InsDate_N, preg$CalvingDate, units="days"))
 preg$diffEndtime <- NULL
 preg$Endtime1 <- NULL
@@ -161,7 +162,7 @@ summary(reproevents)
 
 ####### Data exclusion #########################################################
 
-# Exclude cows without DFC_CLA 
+# Exclude cows without DFC_CLA
 reproevents <- reproevents[!is.na(reproevents$DFC_CLA), ]
 # Exclude cows with DFC_CLA less than 20 and more than 200
 reproevents <- reproevents[-which(reproevents$DFC_CLA < 20 | reproevents$DFC_CLA > 200), ]
@@ -204,14 +205,14 @@ getSeason <- function(DATES){
   SE <- as.Date("2012-4-1", format="%Y-%m-%d")
   SS <- as.Date("2012-7-1", format="%Y-%m-%d")
   FE <- as.Date("2012-10-1", format="%Y-%m-%d")
-  
+
   d <- as.Date(strftime(DATES, format="2012-%m-%d"))
-  ifelse(d >= WS & d < SE, "Winter", 
-         ifelse(d >= SE & d < SS, "Spring", 
+  ifelse(d >= WS & d < SE, "Winter",
+         ifelse(d >= SE & d < SS, "Spring",
                 ifelse(d >= SS & d < FE, "Summer", "Fall")))
 }
 reproevents <- reproevents %>%
-  add_column(Season = 
+  add_column(Season =
                getSeason(reproevents$CalvingDate), .after="CalvingDate")
 reproevents$`Season <- getSeason(reproevents$CalvingDate)` <- NULL
 reproevents$Season.1 <- NULL
@@ -249,14 +250,14 @@ ggplot(data=reproevents, aes(x=factor(CowId))) +
 ggplot(data=reproevents, aes(x=factor(Lactation))) +
   geom_bar(stat = "count", fill="orange")+
   stat_count(geom = "text", size= 4, aes(label=..count..)) +
-  ggtitle("Parity distribution") + xlab("Parity") 
+  ggtitle("Parity distribution") + xlab("Parity")
 
 #Season distribution
 ggplot(data=reproevents, aes(x=factor(Season, level=c('Spring', 'Summer', 'Fall', 'Winter')))) +
   geom_bar(stat = "count", fill="orange")+
   stat_count(geom = "text", size= 4, aes(label=..count..)) +
   ggtitle("Number of cows in each calving season") +
-  xlab("Calving Season") 
+  xlab("Calving Season")
 
 #DFC_CLA
 summary(reproevents$DFC_CLA)
@@ -342,7 +343,7 @@ ggplot(data=reproevents, aes(x=Endtime)) +
   geom_histogram(col="red", fill="green", alpha=0.2) +
   scale_x_continuous(breaks = seq(0, 600, by=50)) +
   ggtitle("Time betweeh last AI and calving") +
-  xlab("Days")  
+  xlab("Days")
 
 #culled cows
 summary(reproevents$Culled)
@@ -356,7 +357,7 @@ ggplot(data=reproevents, aes(x=cull.calving)) +
   geom_histogram(col="red", fill="green", alpha=0.2) +
   scale_x_continuous(breaks = seq(-5, 700, by=50)) +
   ggtitle("Time betweeh culling and calving") +
-  xlab("Days") 
+  xlab("Days")
 
 #cull.firstAI
 reproevents$cull.firstAI <- as.numeric(reproevents$cull.firstAI)
@@ -365,7 +366,7 @@ ggplot(data=reproevents, aes(x=cull.firstAI)) +
   geom_histogram(col="red", fill="green", alpha=0.2) +
   scale_x_continuous(breaks = seq(-220, 700, by=50)) +
   ggtitle("Time betweeh culling and the first AI") +
-  xlab("Days") 
+  xlab("Days")
 
 #cull.lastAI
 reproevents$cull.lastAI <- as.numeric(reproevents$cull.lastAI)

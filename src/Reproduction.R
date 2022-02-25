@@ -6,16 +6,17 @@ library(ggplot2)
 library(psych)
 library(reader)
 library(lubridate)
+library(roxygen2)
 
 ##### MERGE EXCEL SHEETS #######################################################
 ################################################################################
-# empty the data frame first 
+# empty the data frame first
 all_farm_raw <- data.frame()
 
 for(i in 1001:1038){
   # create the excel file name base on the input i
   filename <- paste("C:/Data/",i,", All Data, Proc, June 2020.xlsx", sep = "")
-  
+
   # load the sheets within the same excel file (the same farm)
   df.calving <- read_excel(filename, sheet = "Calving")
   df.cowinfo <- read_excel(filename, sheet = "CowInfo")
@@ -27,13 +28,13 @@ for(i in 1001:1038){
   df.calving <- read_excel(filename, sheet = "Calving")
   df.insemination <- read_excel(filename, sheet = "Insemination")
   df.pregnancy <- read_excel(filename, sheet = "Pregnancy")
-  
+
   # merge the data of different sheets within the same farm
-  df.farm <- merge(df.cowinfo, df.calving, by = "CowId", all.x=TRUE, all.y=TRUE) %>% 
+  df.farm <- merge(df.cowinfo, df.calving, by = "CowId", all.x=TRUE, all.y=TRUE) %>%
     merge(df.culldata, by = "CowId", all.x = TRUE, all.y=TRUE) %>%
     merge(df.insemination, by = "CowId", all.x=TRUE, all.y=TRUE) %>%
     merge(df.pregnancy, by = "CowId", all.x=TRUE, all.y=TRUE)
-  
+
   # append all the merged data into the master final data table
   all_farm_raw <- bind_rows(all_farm_raw, df.farm)
 }
@@ -44,7 +45,7 @@ df.cow <- all_farm_raw %>%
   distinct(FarmNo, CowId)
 # Delete all the rows that without calving date
 all_farm <- subset(all_farm_raw, !is.na(all_farm_raw$CalvingDate))
-# number of cows 
+# number of cows
 df.cow <- all_farm %>%
   distinct(FarmNo, CowId)
 rm(all_farm_raw)
@@ -74,11 +75,11 @@ summary(df.preg)
 df.preg1 <- df.preg[!is.na(df.preg$FarmNo), ]
 summary(df.preg1)
 
-# number of cows 
+# number of cows
 df.cow <- df.preg1 %>%
   distinct(FarmNo, CowId)
 
-### Check data consistency (PregDate - Calving Date) & (CullDate - Calving Date) 
+### Check data consistency (PregDate - Calving Date) & (CullDate - Calving Date)
 ################################################################################
 # create new variables concerning time from calving to culling
 df.preg1$CalvingDate <- as.Date(df.preg1$CalvingDate)
@@ -93,7 +94,7 @@ summary(df.preg1)
 #exclude rows that have been culled within 150 DIM
 df.preg1 <- df.preg1[-which(df.preg1$cull.calving < 150), ]
 
-# number of cows 
+# number of cows
 df.cow <- df.preg1 %>%
   distinct(FarmNo, CowId)
 
@@ -112,41 +113,41 @@ df.preg1$preg.ins <- as.numeric(df.preg1$preg.ins)
 
 # Select the pregnancy determined by HN system (DeterminationType = 2) and NAs
 df.preg1 <- df.preg1[(df.preg1$DeterminationType == 2 | is.na(df.preg1$DeterminationType)), ]
-# number of cows 
+# number of cows
 df.cow <- df.preg1 %>%
   distinct(FarmNo, CowId)
 
 ## Exclude inconsistent cows
 #exclude rows that have negative values of time between pregnancy and calving
 df.preg1 <- df.preg1[(df.preg1$preg.calving >=0 | is.na(df.preg1$preg.calving)), ]
-# number of cows 
+# number of cows
 df.cow <- df.preg1 %>%
   distinct(FarmNo, CowId)
 #exclude rows that have negative values of time between prengancy and insemination
 df.preg1 <- df.preg1[(df.preg1$preg.ins >=0 | is.na(df.preg1$preg.ins)), ]
-# number of cows 
+# number of cows
 df.cow <- df.preg1 %>%
   distinct(FarmNo, CowId)
 #exclude rows with negative DaysToAbort
 df.preg1 <- df.preg1[(df.preg1$DaysToAbort >=0 | is.na(df.preg1$DaysToAbort)), ]
-# number of cows 
+# number of cows
 df.cow <- df.preg1 %>%
   distinct(FarmNo, CowId)
 ################################################################################
 ########### list the first insemination, one cow in only one row ###############
 df.ins1 <- df.preg1 %>%
   group_by(FarmNo, CowId, Lactation, CalvingDate) %>%
-  summarize(InsNumber_1 = min(InsNumber), 
-            PregDate_1 = min(PregDate.y), 
-            InsDate_1=min(InsDate), 
+  summarize(InsNumber_1 = min(InsNumber),
+            PregDate_1 = min(PregDate.y),
+            InsDate_1=min(InsDate),
             AbortionDate_1 = min(AbortionDate))
 
 #list the last insemination, one cow in only one row
 df.insN <- df.preg1 %>%
   group_by(FarmNo, CowId, Lactation, CalvingDate) %>%
-  summarize(InsNumber_N = max(InsNumber), 
-            PregDate_N = max(PregDate.y), 
-            InsDate_N = max(InsDate), 
+  summarize(InsNumber_N = max(InsNumber),
+            PregDate_N = max(PregDate.y),
+            InsDate_N = max(InsDate),
             AbortionDate_N = max(AbortionDate))
 summary(df.insN)
 table(df.insN$InsNumber_N) #How many times does a cow be inseminated?
@@ -155,12 +156,12 @@ df.insN$InsNumber_N <- as.factor(df.insN$InsNumber_N)
 ggplot(data=df.insN, aes(x=factor(InsNumber_N))) +
   geom_bar(stat="count", fill="lightblue") +
   stat_count(geom="text", size=3, aes(label=..count..)) +
-  ggtitle("Number of Cows and Number of AI") + xlab("Number of AI") 
+  ggtitle("Number of Cows and Number of AI") + xlab("Number of AI")
 table(df.ins1$InsNumber_1)
 str(df.insN)
-df.data <- merge(df.ins1, df.insN, 
+df.data <- merge(df.ins1, df.insN,
                  by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), all.x=TRUE, all.y=TRUE, sort=F)
-df.merge1 <- merge(df.preg1, df.data, 
+df.merge1 <- merge(df.preg1, df.data,
                    by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), all.X =TRUE, sort=F)
 #remove unnecessary x columns
 df.merge1$BirthDate <- NULL
@@ -178,7 +179,7 @@ df.repro <- all_farm %>%
   distinct(FarmNo, CowId, Lactation, .keep_all=TRUE)
 summary(df.repro)
 
-df.preg <- merge(df.preg1, df.repro, 
+df.preg <- merge(df.preg1, df.repro,
                    by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), all.x=TRUE, sort=F)
 summary(df.preg)
 
@@ -240,7 +241,7 @@ repro$PregDate_N <- as.Date(repro$PregDate_N)
 repro$InsDate_N <- as.Date(repro$InsDate_N)
 repro$ins.preg <- as.numeric(difftime(repro$PregDate_N, repro$InsDate_N, units="days"))
 summary(repro$ins.preg1)
-repro$ins.preg <- ifelse((repro$InsNumber_N==1), difftime(repro$PregDate_1, repro$InsDate_1, units="days"), 
+repro$ins.preg <- ifelse((repro$InsNumber_N==1), difftime(repro$PregDate_1, repro$InsDate_1, units="days"),
                         difftime(repro$PregDate_N, repro$InsDate_N, units="days"))
 repro$ins.preg <- as.numeric(repro$ins.preg)
 summary(repro$ins.preg)
@@ -252,7 +253,7 @@ repro$Endtime <- as.numeric(difftime(repro$InsDate_N, repro$CalvingDate, units="
 summary(repro$Endtime)
 hist(repro$Endtime)
 
-repro$Endtime1 <- ifelse((repro$InsNumber_N==1), difftime(repro$InsDate_1, repro$CalvingDate, units="days"), 
+repro$Endtime1 <- ifelse((repro$InsNumber_N==1), difftime(repro$InsDate_1, repro$CalvingDate, units="days"),
                         difftime(repro$InsDate_N, repro$CalvingDate, units="days"))
 repro$diffEndtime <- NULL
 repro$Endtime1 <- NULL
@@ -273,14 +274,14 @@ getSeason <- function(DATES){
   SE <- as.Date("2012-4-1", format="%Y-%m-%d")
   SS <- as.Date("2012-7-1", format="%Y-%m-%d")
   FE <- as.Date("2012-10-1", format="%Y-%m-%d")
-  
+
   d <- as.Date(strftime(DATES, format="2012-%m-%d"))
-  ifelse(d >= WS & d < SE, "Winter", 
-         ifelse(d >= SE & d < SS, "Spring", 
+  ifelse(d >= WS & d < SE, "Winter",
+         ifelse(d >= SE & d < SS, "Spring",
                 ifelse(d >= SS & d < FE, "Summer", "Fall")))
 }
 repro <- repro %>%
-  add_column(Season = 
+  add_column(Season =
                getSeason(repro$CalvingDate), .after="CalvingDate")
 repro$`Season <- getSeason(repro$CalvingDate)` <- NULL
 repro$Season.1 <- NULL
