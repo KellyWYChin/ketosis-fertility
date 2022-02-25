@@ -1,6 +1,6 @@
-# Ketosis Fertility
+# Association Between Ketosis Dynamics and Fertility in Dariy Cattle from Time-Series Measurements
 
-subtitle
+Author: Wen-Yu Kelly Chin
 subtitle 2
 
 ## Project organization

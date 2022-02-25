@@ -1,0 +1,499 @@
+---
+title: "Univariable"
+author: "Kelly Chin"
+date: "2/22/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r library, warning=FALSE, message = FALSE}
+library(readxl)
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(reader)
+library(lubridate)
+library(docstring)
+library(roxygen2)
+```
+
+# DATA PREPARATION
+
+## Reproduction data
+```{r, warning=FALSE}
+#########################
+#   Merge Reproduction  #
+#########################
+# Merge reproduction data from 38 farms
+# empty the data frame first
+all_farm_raw <- data.frame()
+
+for (i in 1001:1038) {
+  # create the excel file name base on the input i
+  filename <- paste("C:/Users/user/good-enough-project-template/data/raw/", i ,", All Data, Proc, June 2020.xlsx", sep = "")
+
+  # load the sheets within the same excel file (the same farm)
+  df.calving <- read_excel(filename, sheet = "Calving")
+  df.cowinfo <- read_excel(filename, sheet = "CowInfo")
+  # change the column name of cowinfo (CowID -> CowId)
+  colnames(df.cowinfo)[colnames(df.cowinfo)=="CowID"] <- "CowId"
+  # change the column BirthDate into character
+  df.cowinfo$BirthDate <- as.character(df.cowinfo$BirthDate)
+  df.culldata <- read_excel(filename, sheet = "CullData")
+  df.calving <- read_excel(filename, sheet = "Calving")
+  df.insemination <- read_excel(filename, sheet = "Insemination")
+  df.pregnancy <- read_excel(filename, sheet = "Pregnancy")
+
+  # merge the data of different sheets within the same farm
+  df.farm <- merge(df.cowinfo, df.calving, by = "CowId", all.x=TRUE, all.y=TRUE) %>%
+    merge(df.culldata, by = "CowId", all.x = TRUE, all.y=TRUE) %>%
+    merge(df.insemination, by = "CowId", all.x=TRUE, all.y=TRUE) %>%
+    merge(df.pregnancy, by = "CowId", all.x=TRUE, all.y=TRUE)
+
+  # append all the merged data into the master final data table
+  all_farm_raw <- bind_rows(all_farm_raw, df.farm)
+}
+rm(list=ls(pattern="df"))
+summary(all_farm_raw)
+
+# Delete all the rows that without calving date
+all_farm <- subset(all_farm_raw, !is.na(all_farm_raw$CalvingDate))
+df.cow <- all_farm %>%
+  distinct(FarmNo, CowId)
+rm(all_farm_raw)
+nrow(all_farm)
+str(all_farm)
+summary(all_farm)
+all_farm$BirthDate <- as.Date(all_farm$BirthDate)
+
+# change weird date signs to NAs
+all_farm$EEDDate <- as.Date(all_farm$NextIns)
+all_farm$EEDDate[all_farm$EEDDate == "1899-12-31"] <- NA
+all_farm$NextIns <- as.Date(all_farm$NextIns)
+all_farm$NextIns[all_farm$NextIns == "1899-12-31 00:00:00"] <- NA
+all_farm$PregDate.x <- as.Date(all_farm$PregDate.x)
+all_farm$PregDate.x[all_farm$PregDate.x == "1899-12-31 00:00:00"] <- NA
+all_farm$AbortionDate <- as.Date(all_farm$AbortionDate)
+all_farm$AbortionDate[all_farm$AbortionDate == "1899-12-31 00:00:00"] <- NA
+summary(all_farm)
+
+###################
+#    COW LEVEL    #
+###################
+# Select the reproduction parameters that are going to use in cow level
+work <- all_farm%>%
+  select(FarmNo, CowId, 
+         BirthDate, CalvingDate, 
+         Lactation, 
+         DFC_CLA, DFCFirstHeat, 
+         DaysToFirstIns, DaysToLastIns, DaysBtwFirstAndLastIns, 
+         InsDate, InsNumber, 
+         PregDate.x, PregDate.y, 
+         AbortionDate, DaysToAbort) %>%
+  distinct(FarmNo, CowId, Lactation, 
+           InsNumber, PregDate.x,
+           .keep_all=TRUE)
+
+# How many cows in 38 farms will remain?
+df.work.ind <- work %>%
+  distinct(FarmNo, CowId, .keep_all = TRUE) #5,262 cows
+# How many cows have 2 lactation data?
+df.work.lact <- work %>%
+  distinct(FarmNo, CowId, Lactation, .keep_all=TRUE) #5,327 cows
+
+# When was the 1st AI? If abortion happened after 1st AI? (co level)
+df.ins1 <- all_farm %>%
+  group_by(FarmNo, CowId, Lactation) %>%
+  summarize(Ins_1=min(InsNumber), 
+            PregDate_1=min(PregDate.x), 
+            InsDate_1=min(InsDate), 
+            AbortionDate_1=min(AbortionDate))
+
+# When was the last AI? If abortion happened after last AI? (cow level)
+df.insN <- all_farm %>%
+  group_by(FarmNo, CowId, Lactation) %>%
+  summarize(Ins_N=max(InsNumber), 
+            PregDate_N=max(PregDate.x), 
+            InsDate_N=max(InsDate), 
+            AbortionDate_N=max(AbortionDate))
+
+# When Ins_N is 1, meaning the cow was inseminated only once
+df.insN$Ins_N[df.insN$Ins_N == 1] <- NA
+# Change the last Pregnant/AI/Abortion Date into character and others NA
+df.insN$PregDate_N <- ifelse(is.na(df.insN$Ins_N), NA, as.character(df.insN$PregDate_N))
+df.insN$InsDate_N <- ifelse(is.na(df.insN$Ins_N), NA, as.character(df.insN$InsDate_N))
+df.insN$AbortionDate_N <- as.Date(df.insN$AbortionDate_N)
+which.max(df.insN$Gap)
+
+#################
+##     TODO     #
+#################
+# Check data consistency
+## What is the time differences between Abortion date and AI date?
+df.insN$PregDate_N <- as.Date(df.insN$PregDate_N)
+df.insN$InsDate_N <- as.Date(df.insN$InsDate_N)
+df.insN$Gap <- difftime(df.insN$AbortionDate_N, df.insN$InsDate_N, units="days")
+df.insN$Gap <- as.numeric(df.insN$Gap)
+summary(df.insN$Gap)
+df.insN$Gap[which(df.insN$Gap > 0)] #There is one positive value, meaning abortion
+# Delete the column, Gap
+df.insN$Gap <- NULL
+
+## What is the time differences between 1st Abortion and Preg and 1st AI?
+df.ins1$InsDate_1 <- as.Date(df.ins1$InsDate_1)
+df.ins1$PregDate_1 <- as.Date(df.ins1$PregDate_1)
+df.ins1$AbortionDate_1 <- as.Date(df.ins1$AbortionDate_1)
+df.ins1$Gap <- difftime(df.ins1$AbortionDate_1, df.ins1$InsDate_1, units="days")
+df.ins1$Gap <- as.numeric(df.ins1$Gap)
+summary(df.ins1$Gap) #Just to know there are abortion happened after 1st AI
+df.ins1$Gap <- NULL
+#################################
+# CHECK IF ABOVE IS WORTH TO DO #
+#################################
+
+# Merge 1st and last AI
+df.ins.all <- data.frame()
+df.ins.all <- merge(df.ins1, df.insN, by = c('FarmNo', 'CowId', 'Lactation'), 
+                    all.y=TRUE, sort=F)
+# Merge reproduction events to get all reproductive events
+df.work_repro <- data.frame()
+df.work_repro <- merge(work, df.ins.all,
+                       by = c('FarmNo', 'CowId', 'Lactation'), 
+                       all.y = TRUE, sort=F) %>%
+  distinct(FarmNo, CowId, Lactation, .keep_all=TRUE)
+
+# Delete columns
+df.work_repro$PregDate.x <- NULL
+df.work_repro$PregDate.y <- NULL
+df.work_repro$InsDate <- NULL
+df.work_repro$InsNumber <- NULL
+repro <- df.work_repro
+rm(list=ls(pattern="df"))
+```
+
+## Reproduction data for pregnant events
+```{r, warning=FALSE}
+###########################################
+# select reproduction events of interests #
+###########################################
+df.preg <- all_farm %>%
+  select(FarmNo, CowId, 
+         BirthDate, CalvingDate, 
+         Lactation, 
+         CullDate, 
+         InsDate, InsNumber, NextIns, 
+         PregDate.x, PregDate.y, DeterminationType, 
+         AbortionDate, DaysToAbort)
+summary(df.preg)
+# Select the pregnancy determined by HN system (DeterminationType = 2)
+df.preg1 <- df.preg[(df.preg$DeterminationType == 2 | is.na(df.preg$DeterminationType)), ]
+summary(df.preg1)
+# Select the pregnancy determined by HN system, Physical, and Visual abort (DeterminationType = 2, 3, and 4)
+df.preg2 <- df.preg[(df.preg$DeterminationType == 2 | df.preg$DeterminationType == 3 | df.preg$DeterminationType == 4), ]
+#Find out that Determination Type 4 is confusing
+#Remove rows with FarmNo = NA
+df.preg3 <- df.preg1[!is.na(df.preg1$FarmNo), ]
+summary(df.preg3)
+df.preg1 <- df.preg3
+rm(df.preg3)
+rm(df.preg2)
+
+#Remove column PregDate.x
+df.preg1$PregDate.x <- NULL
+summary(df.preg1)
+```
+
+```{r, warning=FALSE}
+#######################
+#       TODO          #
+#  Check consistency  #
+#######################
+# Time between Calving, Preg, Culling
+df.preg1$CalvingDate <- as.Date(df.preg1$CalvingDate)
+df.preg1$PregDate.y <- as.Date(df.preg1$PregDate.y)
+df.preg1$CullDate <- as.Date(df.preg1$CullDate)
+# Culling date before 2018-06-01 is outside the cohort time
+df.preg1$CullDate[df.preg1$CullDate <= "2018-05-31"] <- NA
+# Time between (Preg and Calving Date) and (Culling and Calving Date)
+df.preg1$preg.calving <- difftime(df.preg1$PregDate.y, 
+                                  df.preg1$CalvingDate, units="days")
+df.preg1$cull.calving <- difftime(df.preg1$CullDate, 
+                                  df.preg1$CalvingDate, units="days")
+df.preg1$Culled <- ifelse(!is.na(df.preg1$cull.calving), 1, 0)
+summary(df.preg1)
+
+## TODO
+# Exclude rows that have negative values of time between pregnancy and calving
+#df.preg1 <- df.preg1[(df.preg1$preg.calving >=0 | is.na(df.preg1$preg.calving)), ]
+
+# Exclude rows that have been culled within 150 DIM
+df.preg1 <- df.preg1[-which(df.preg1$cull.calving < 150), ]
+
+# number of cows
+df.cow <- df.preg1 %>%
+  distinct(FarmNo, CowId)
+
+# Remove column PregDate.x
+df.preg1$PregDate.x <- NULL
+
+df.preg1$InsDate <- as.Date(df.preg1$InsDate)
+df.preg1$preg.ins <- difftime(df.preg1$PregDate.y, df.preg1$InsDate, units="days")
+df.preg1$preg.ins <- as.numeric(df.preg1$preg.ins)
+##　TODO 
+# Exclude the negative time difference between preg date and AI 
+#df.preg1 <- df.preg1[(df.preg1$preg.ins >=0 | is.na(df.preg1$preg.ins)), ]
+#summary(df.preg1)
+#df.data3 <- df.preg1 %>% distinct(FarmNo, CowId)
+
+#######################################
+#   Check (AbortionDate - PregDate)   #
+#######################################
+df.preg1$AbortionDate <- as.Date(df.preg1$AbortionDate)
+df.preg1$abort.preg <- difftime(df.preg1$AbortionDate, df.preg1$PregDate.y, units = "days")
+df.preg1$abort.preg <- as.numeric(df.preg1$abort.preg)
+summary(df.preg1)
+str(df.preg1$DaysToAbort)
+#exclude rows with negative DaysToAbort
+df.preg1 <- df.preg1[(df.preg1$DaysToAbort >=0 | is.na(df.preg1$DaysToAbort)), ]
+
+###############################################
+#      1st and the lastest AI, COW LEVEL      #
+###############################################
+df.ins1 <- df.preg1 %>%
+  group_by(FarmNo, CowId, Lactation, CalvingDate) %>%
+  summarize(InsNumber_1 = min(InsNumber), 
+            PregDate_1 = min(PregDate.y), 
+            InsDate_1=min(InsDate), 
+            AbortionDate_1 = min(AbortionDate))
+
+# last AI, one cow in only one row
+df.insN <- df.preg1 %>%
+  group_by(FarmNo, CowId, Lactation, CalvingDate) %>%
+  summarize(InsNumber_N = max(InsNumber), 
+            PregDate_N = max(PregDate.y), 
+            InsDate_N = max(InsDate), 
+            AbortionDate_N = max(AbortionDate))
+
+summary(df.insN)
+table(df.insN$InsNumber_N) #How many times does a cow be inseminated?
+
+# Number of cows vs number of AI
+df.insN$InsNumber_N <- as.factor(df.insN$InsNumber_N)
+ggplot(data=df.insN, aes(x=factor(InsNumber_N))) +
+  geom_bar(stat="count", fill="lightblue") +
+  stat_count(geom="text", size=3, aes(label=..count..)) +
+  ggtitle("Number of Cows and Number of AI") + 
+  xlab("Number of AI") +
+  theme_classic()
+
+#table(df.ins1$InsNumber_1)
+#str(df.insN)
+
+df.data <- merge(df.ins1, df.insN, 
+                 by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), 
+                 all.y=TRUE, sort=F)
+
+# When Ins_N is 1, meaning the cow was inseminated only once
+#df.data$Ins_N[df.data$Ins_N == 1] <- NA
+
+df.table <- df.preg1 %>%
+  distinct(FarmNo, CowId, Lactation, .keep_all=TRUE) 
+
+
+
+```
+
+## Milk data
+```{r, warning=FALSE}
+df.lact <- all_farm %>%
+  select(CowId, FarmNo, CalvingDate, Lactation, PeakYield, PeakDim) %>%
+  distinct(CowId, FarmNo, Lactation, .keep_all=TRUE)
+
+all_milk_raw <- data.frame()
+for (i in 1001:1038) {
+  filename <- paste("C:/Users/user/good-enough-project-template/data/raw/",i,", All Data, Proc, June 2020.xlsx", sep = "")
+  df.milk <- read_excel(filename, sheet = "MilkData")
+  df.cowinfo <- read_excel(filename, sheet = "CowInfo")
+  # change the column name of cowinfo (CowID -> CowId)
+  colnames(df.cowinfo)[colnames(df.cowinfo)=="CowID"] <- "CowId"
+  df.cowinfo$BirthDate <- as.character(df.cowinfo$BirthDate)
+  
+  df.milkfarm <- merge(df.cowinfo, df.milk, by = "CowId", all.x= TRUE, all.y=TRUE) %>%
+    group_by(FarmNo, CowId) %>%
+    arrange(DFC, .by_group = TRUE)
+
+  all_milk_raw <- bind_rows(all_milk_raw, df.milkfarm)
+}
+summary(all_milk_raw)
+all_milk_raw$CowNo <- NULL
+all_milk_raw$BirthDate <- NULL
+all_milk_raw$Inclusion <- NULL
+all_milk_raw$HasMilkLactCowID <- NULL
+all_milk <- all_milk_raw %>%
+  distinct(FarmNo, CowId)
+
+#create a milk dataframe including all milk information from 38 farms #
+df.merge <- data.frame()
+df.merge <- merge(df.lact, all_milk_raw, by=c('FarmNo', 'CowId'), all.x=TRUE, all.y=TRUE) %>%
+  group_by(FarmNo, CowId) %>%
+  arrange(DFC, .by_group=TRUE)
+summary(df.merge)
+# Exclude cows without FarmNo
+df.merge <- df.merge[!is.na(df.merge$FarmNo), ]
+# Exclude DIM 1-3 milk yield
+df.merge1 <- df.merge %>%
+  filter(DFC > 3)
+# if daily milk yield <1 kg, we name it as NA; others = original daily milk yield
+df.merge1$DayYield <- ifelse(df.merge1$DayYield < 1, NA, df.merge1$DayYield)
+df.merge <- df.merge1
+df.merge2 <- df.merge1 %>%
+  distinct(FarmNo, CowId)
+
+##### Calculate first 20 DIM, mean milk yield, cumulative milk yield
+df.first20d <- df.merge %>%
+  group_by(FarmNo, CowId) %>%
+  select(Lactation, CalvingDate, DayYield, DFC) %>%
+  filter(DFC <= 20) %>%
+  mutate(AvgMilk20 = mean(DayYield), 
+         MinDFC = min(DFC), 
+         MaxDFC = max(DFC), 
+         sumMY20 = sum(DayYield))
+summary(df.first20d)
+
+# ONLY when Min DFC = 4 and  Max DFC = 20 the cows can be included into the dataset #
+df.first20d.comp <- subset(df.first20d, 
+                           MinDFC == "4" & MaxDFC == "20")
+summary(df.first20d.comp)
+# All cows 
+df.20dmilk <- df.first20d %>%
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk20, sumMY20) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMilk20, sumMY20)
+# Only the cows have completed 4-20 DIM milk records
+df.20d_ind <- df.first20d.comp %>%
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk20, sumMY20) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMilk20, sumMY20)
+
+##### Calculate first 60 d mean milk yield, cumulative milk yield
+df.first60d <- df.merge %>%
+  group_by(FarmNo, CowId) %>%
+  select(Lactation, CalvingDate, DayYield, DFC) %>%
+  filter(DFC <= 60) %>%
+  mutate(AvgMilk60 = mean(DayYield), 
+         MinDFC = min(DFC), 
+         MaxDFC = max(DFC), 
+         sumMY60 = sum(DayYield))
+summary(df.first60d)
+# Only the cows have completed 4-60 DIM milk records
+df.first60d.comp <- subset(df.first60d, 
+                           MinDFC == "4" & MaxDFC == "60")
+summary(df.first60d.comp)
+df.60dmilk <- df.first60d %>%
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk60, sumMY60) %>%
+  distinct(FarmNo, CowId, Lactation, CalvingDate, AvgMilk60, sumMY60)
+
+df.60d_ind <- df.first60d.comp %>%
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk60, sumMY60) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMilk60, sumMY60)
+
+df.master1 <- merge(df.20d_ind, df.60d_ind, 
+                    by = c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
+df.master5 <- merge(df.20dmilk, df.60dmilk, 
+                    by= c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
+summary(df.master1)
+
+df.first80d <- df.merge %>%
+  group_by(FarmNo, CowId) %>%
+  select(Lactation, CalvingDate, DayYield, DFC) %>%
+  filter(DFC <= 80) %>%
+  mutate(AvgMilk80 = mean(DayYield), 
+         MinDFC = min(DFC), 
+         MaxDFC = max(DFC), 
+         sumMY80 = sum(DayYield))
+summary(df.first80d)
+# Only the cows have completed 4-80 DIM milk records
+df.first80d.comp <- subset(df.first80d, 
+                           MinDFC == "4" & MaxDFC == "80")
+summary(df.first80d.comp)
+df.80dmilk <- df.first80d %>%
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk80, sumMY80) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMilk80, sumMY80)
+df.80d_ind <- df.first80d.comp %>%
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk80, sumMY80) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMilk80, sumMY80)
+
+df.master2 <- merge(df.master1, df.80d_ind, 
+                    by = c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
+df.master6 <- merge(df.master5, df.80dmilk, 
+                    by = c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
+summary(df.master2)
+
+df.first100d <- df.merge %>%
+  group_by(FarmNo, CowId) %>%
+  select(Lactation, CalvingDate, DayYield, DFC) %>%
+  filter(DFC <= 100) %>%
+  mutate(AvgMilk100 = mean(DayYield), MinDFC = min(DFC), MaxDFC = max(DFC), sumMY100 = sum(DayYield))
+summary(df.first100d)
+
+df.first100d.comp <- subset(df.first100d, MinDFC == "4" & MaxDFC == "100")
+summary(df.first100d.comp)
+
+df.100d_ind <- df.first100d.comp %>%
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk100, sumMY100) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMilk100, sumMY100)
+
+df.master3 <- merge(df.master2, df.100d_ind, by = c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
+
+df.first305d <- df.merge %>%
+  group_by(FarmNo, CowId) %>%
+  select(Lactation, CalvingDate, DayYield, DFC) %>%
+  filter(DFC <= 305) %>%
+  mutate(AvgMilk305 = mean(DayYield), 
+         MinDFC = min(DFC), 
+         MaxDFC = max(DFC), 
+         sumMY305 = sum(DayYield))
+summary(df.first305d)
+
+df.305dmilk <- df.first305d %>%
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk305, sumMY305) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMilk305, sumMY305)
+
+df.first305d.comp <- subset(df.first305d, MinDFC == "4" & MaxDFC == "305")
+
+summary(df.first305d.comp)
+df.305d_ind <- df.first305d.comp %>%
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk305, sumMY305) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMilk305, sumMY305)
+summary(df.305d_ind)
+
+df.master4 <- merge(df.master3, df.305d_ind, by = c('FarmNo', 'CowId', 'Lactation'), all.x = TRUE, all.y = TRUE)
+summary(df.master4)
+df.master7 <-merge(df.master6, df.305dmilk, 
+                   by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
+milk <- merge(df.lact, df.master4, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
+summary(milk)
+milk <- milk[!is.na(milk$FarmNo), ]
+
+milk_all <- merge(df.lact, df.master7, 
+                  by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), all.x=TRUE, all.y=TRUE)
+milk_all <- milk_all[!is.na(milk_all$FarmNo), ]
+milk_all <- milk_all[!is.na(milk_all$CalvingDate), ]
+rm(list=ls(pattern="df"))
+rm(all_milk)
+
+# re-categroize Lactation into 4 groups: 1, 2, 3, and 4+
+milk$ad_Lactation[milk$Lactation >= 4] <- 4
+milk$ad_Lactation[milk$Lactation == 3] <- 3
+milk$ad_Lactation[milk$Lactation == 2] <- 2
+milk$ad_Lactation[milk$Lactation == 1] <- 1
+summary(milk)
+milk_all$ad_Lactation[milk_all$Lactation >= 4] <- 4
+milk_all$ad_Lactation[milk_all$Lactation == 3] <- 3
+milk_all$ad_Lactation[milk_all$Lactation == 2] <- 2
+milk_all$ad_Lactation[milk_all$Lactation == 1] <- 1
+summary(milk_all)
+```
+
