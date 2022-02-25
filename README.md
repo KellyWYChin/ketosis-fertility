@@ -2,6 +2,8 @@
 
 Author: Wen-Yu Kelly Chin
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/KellyWYChin/ketosis-fertility/HEAD)
+
 ## Available data
 
 Data were sponsored by DeLaval, a producer of dairy and farming machinery, with a head office in Tumba, Sweden. A total of 38 dairy herds in the Netherlands with Herd Navigator (HN) were included in the dataset. Reproduction data, milk data, and ketosis data at cow level were collected between June 2018 to July 2020.
