@@ -1,5 +1,11 @@
 library(roxygen2)
 roxygen2::roxygenise()
+install.packages("renv")
+renv::init()
+renv::snapshot()
+renv::restore()
+install.packages("conda")
+library(conda)
 library(docstring)
 square <- function(x){
   #' Computes the square of the input

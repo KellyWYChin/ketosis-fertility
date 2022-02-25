@@ -3,22 +3,23 @@
     "path": "C:/Users/user/good-enough-project-template/src/Univariable.Rmd",
     "project_path": "src/Univariable.Rmd",
     "type": "r_markdown",
-    "hash": "3356081931",
+    "hash": "0",
     "contents": "",
     "dirty": false,
     "created": 1645779643853.0,
     "source_on_save": false,
     "relative_order": 2,
     "properties": {
-        "cursorPosition": "20,16",
-        "scrollLine": "7"
+        "cursorPosition": "12,0",
+        "scrollLine": "6",
+        "last_setup_crc32": ""
     },
     "folds": "",
-    "lastKnownWriteTime": 1645780914,
+    "lastKnownWriteTime": 1645785682,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1645780914172,
+    "last_content_update": 1645785682860,
     "read_only": false,
     "read_only_alternatives": []
 }

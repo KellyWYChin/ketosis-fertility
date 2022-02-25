@@ -2,18 +2,6 @@
 
 Author: Wen-Yu Kelly Chin
 
-## R version
-Data editing was performed with RStudop (Version 4.0.2, URL: https://cran.rstudio.com)
-
-## Packages installation
-library(readxl)
-library(tidyr)
-library(tidyverse)
-library(dplyr)
-library(ggplot2)
-library(reader)
-library(lubridate)
-
 ## Project organization
 - PG = project-generated
 - HW = human-writable
