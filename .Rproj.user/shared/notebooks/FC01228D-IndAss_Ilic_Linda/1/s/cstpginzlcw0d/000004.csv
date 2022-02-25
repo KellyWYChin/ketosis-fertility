@@ -1,0 +1,8 @@
+"0",""
+"0",""
+"0","#----Loading data------"
+"0",""
+"0","df <- read.csv(""Time-series-R/ESMdata.csv"") "
+"2","cannot open file 'Time-series-R/ESMdata.csv': No such file or directory"
+"2","Error in file(file, ""rt"") : cannot open the connection
+"
