@@ -2,6 +2,7 @@
 
 Author: Wen-Yu Kelly Chin
 
+[![DOI](https://sandbox.zenodo.org/badge/463110794.svg)](https://sandbox.zenodo.org/badge/latestdoi/463110794)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/KellyWYChin/ketosis-fertility/HEAD)
 
 ## Available data
