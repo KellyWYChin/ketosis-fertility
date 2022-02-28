@@ -308,6 +308,27 @@ df.table <- df.preg1 %>%
 
 ```
 
+## Ketosis data
+
+* BHB measurements did not start from the same day (mostly 3 or 4 DFC)
+* some cows have a more frequent measurement of BHB (more than once per day)
+```{r, warning=FALSE}
+all_keto_raw <- data.frame()
+for(i in 1001:1038){
+  filename <- paste("../data/raw/",i,", All Data, Proc, June 2020.xlsx", sep = "")
+  df.keto <- read_excel(filename, sheet = "Ketosis")
+  
+  all_keto_raw <- bind_rows(all_keto_raw, df.keto) %>%
+    group_by(FarmNo, CowId) %>%
+    arrange(DFC, .by_group = TRUE)
+} 
+summary(all_keto_raw)
+rm(list=ls(pattern="df"))
+
+all_keto_raw$rDFC <- round(all_keto_raw$DFC)
+summary(all_keto_raw)
+```
+
 ## Milk data
 ```{r, warning=FALSE}
 df.lact <- all_farm %>%
