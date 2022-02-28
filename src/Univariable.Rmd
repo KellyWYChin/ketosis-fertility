@@ -78,10 +78,11 @@ all_farm$PregDate.x[all_farm$PregDate.x == "1899-12-31 00:00:00"] <- NA
 all_farm$AbortionDate <- as.Date(all_farm$AbortionDate)
 all_farm$AbortionDate[all_farm$AbortionDate == "1899-12-31 00:00:00"] <- NA
 summary(all_farm)
-
-###################
-#    COW LEVEL    #
-###################
+```
+```{r, warning=FALSE}
+##################################
+#  COW LEVEL Reproduction Events #
+##################################
 # Select the reproduction parameters that are going to use in cow level
 work <- all_farm%>%
   select(FarmNo, CowId, 
@@ -122,8 +123,10 @@ df.insN <- all_farm %>%
 # When Ins_N is 1, meaning the cow was inseminated only once
 df.insN$Ins_N[df.insN$Ins_N == 1] <- NA
 # Change the last Pregnant/AI/Abortion Date into character and others NA
-df.insN$PregDate_N <- ifelse(is.na(df.insN$Ins_N), NA, as.character(df.insN$PregDate_N))
-df.insN$InsDate_N <- ifelse(is.na(df.insN$Ins_N), NA, as.character(df.insN$InsDate_N))
+df.insN$PregDate_N <- ifelse(is.na(df.insN$Ins_N), NA,
+                             as.character(df.insN$PregDate_N))
+df.insN$InsDate_N <- ifelse(is.na(df.insN$Ins_N), NA,
+                            as.character(df.insN$InsDate_N))
 df.insN$AbortionDate_N <- as.Date(df.insN$AbortionDate_N)
 which.max(df.insN$Gap)
 
@@ -163,13 +166,13 @@ df.work_repro <- merge(work, df.ins.all,
                        by = c('FarmNo', 'CowId', 'Lactation'), 
                        all.y = TRUE, sort=F) %>%
   distinct(FarmNo, CowId, Lactation, .keep_all=TRUE)
-
 # Delete columns
 df.work_repro$PregDate.x <- NULL
 df.work_repro$PregDate.y <- NULL
 df.work_repro$InsDate <- NULL
 df.work_repro$InsNumber <- NULL
-repro <- df.work_repro
+# Delete all cows without FarmNo.
+repro <- subset(df.work_repro, !is.na(df.work_repro$FarmNo))
 rm(list=ls(pattern="df"))
 ```
 
@@ -309,7 +312,7 @@ df.table <- df.preg1 %>%
 ```{r, warning=FALSE}
 df.lact <- all_farm %>%
   select(CowId, FarmNo, CalvingDate, Lactation, PeakYield, PeakDim) %>%
-  distinct(CowId, FarmNo, Lactation, .keep_all=TRUE)
+  distinct(CowId, FarmNo, Lactation, CalvingDate, .keep_all=TRUE)
 
 all_milk_raw <- data.frame()
 for (i in 1001:1038) {
@@ -326,7 +329,7 @@ for (i in 1001:1038) {
 
   all_milk_raw <- bind_rows(all_milk_raw, df.milkfarm)
 }
-summary(all_milk_raw)
+all_milk_raw
 all_milk_raw$CowNo <- NULL
 all_milk_raw$BirthDate <- NULL
 all_milk_raw$Inclusion <- NULL
@@ -337,146 +340,148 @@ all_milk <- all_milk_raw %>%
 #create a milk dataframe including all milk information from 38 farms #
 df.merge <- data.frame()
 df.merge <- merge(df.lact, all_milk_raw, by=c('FarmNo', 'CowId'), all.x=TRUE, all.y=TRUE) %>%
-  group_by(FarmNo, CowId) %>%
+  group_by(FarmNo, CowId, CalvingDate) %>%
   arrange(DFC, .by_group=TRUE)
 summary(df.merge)
+
 # Exclude cows without FarmNo
 df.merge <- df.merge[!is.na(df.merge$FarmNo), ]
+summary(df.merge)
+# Exclude cows without CowId, Calving Date
+df.merge$CalvingDate <- as.character(df.merge$CalvingDate)
+df.merge <- df.merge[!(is.na(df.merge$CowId) | is.na(df.merge$CalvingDate)), ]
+
 # Exclude DIM 1-3 milk yield
 df.merge1 <- df.merge %>%
   filter(DFC > 3)
 # if daily milk yield <1 kg, we name it as NA; others = original daily milk yield
 df.merge1$DayYield <- ifelse(df.merge1$DayYield < 1, NA, df.merge1$DayYield)
 df.merge <- df.merge1
+# How many cows remain?
 df.merge2 <- df.merge1 %>%
-  distinct(FarmNo, CowId)
-
-##### Calculate first 20 DIM, mean milk yield, cumulative milk yield
-df.first20d <- df.merge %>%
-  group_by(FarmNo, CowId) %>%
-  select(Lactation, CalvingDate, DayYield, DFC) %>%
-  filter(DFC <= 20) %>%
-  mutate(AvgMilk20 = mean(DayYield), 
+  distinct(FarmNo, CowId) #5,119 cows
+```
+```{r, warning=FALSE}
+#############################
+#   Cumulative milk yield   #
+#############################
+# Cumulative milk yield, mean milk yield
+cumulativeMY <- function(D){
+  df.merge %>%
+  group_by(FarmNo, CowId, CalvingDate) %>%
+  select(Lactation, DayYield, DFC) %>%
+  filter(DFC <= D) %>%
+  mutate(!!paste0('AvgMY', D) := mean(DayYield), 
          MinDFC = min(DFC), 
          MaxDFC = max(DFC), 
-         sumMY20 = sum(DayYield))
-summary(df.first20d)
+         !!paste0('SumMY', D) := sum(DayYield))
+}
+
+# First 20 days
+df.first20d <- cumulativeMY(20)
 
 # ONLY when Min DFC = 4 and  Max DFC = 20 the cows can be included into the dataset #
 df.first20d.comp <- subset(df.first20d, 
                            MinDFC == "4" & MaxDFC == "20")
-summary(df.first20d.comp)
 # All cows 
 df.20dmilk <- df.first20d %>%
-  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk20, sumMY20) %>%
-  distinct(FarmNo, CowId, Lactation, AvgMilk20, sumMY20)
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMY20, SumMY20) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMY20, SumMY20)
 # Only the cows have completed 4-20 DIM milk records
 df.20d_ind <- df.first20d.comp %>%
-  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk20, sumMY20) %>%
-  distinct(FarmNo, CowId, Lactation, AvgMilk20, sumMY20)
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMY20, SumMY20) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMY20, SumMY20)
 
-##### Calculate first 60 d mean milk yield, cumulative milk yield
-df.first60d <- df.merge %>%
-  group_by(FarmNo, CowId) %>%
-  select(Lactation, CalvingDate, DayYield, DFC) %>%
-  filter(DFC <= 60) %>%
-  mutate(AvgMilk60 = mean(DayYield), 
-         MinDFC = min(DFC), 
-         MaxDFC = max(DFC), 
-         sumMY60 = sum(DayYield))
-summary(df.first60d)
+# First 60 days
+df.first60d <- cumulativeMY(60)
 # Only the cows have completed 4-60 DIM milk records
 df.first60d.comp <- subset(df.first60d, 
                            MinDFC == "4" & MaxDFC == "60")
 summary(df.first60d.comp)
 df.60dmilk <- df.first60d %>%
-  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk60, sumMY60) %>%
-  distinct(FarmNo, CowId, Lactation, CalvingDate, AvgMilk60, sumMY60)
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMY60, SumMY60) %>%
+  distinct(FarmNo, CowId, Lactation, CalvingDate, AvgMY60, SumMY60)
 
 df.60d_ind <- df.first60d.comp %>%
-  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk60, sumMY60) %>%
-  distinct(FarmNo, CowId, Lactation, AvgMilk60, sumMY60)
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMY60, SumMY60) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMY60, SumMY60)
 
 df.master1 <- merge(df.20d_ind, df.60d_ind, 
-                    by = c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
+                    by = c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'),
+                    all.x=TRUE, all.y=TRUE)
 df.master5 <- merge(df.20dmilk, df.60dmilk, 
-                    by= c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
-summary(df.master1)
+                    by = c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'),
+                    all.x=TRUE, all.y=TRUE)
 
-df.first80d <- df.merge %>%
-  group_by(FarmNo, CowId) %>%
-  select(Lactation, CalvingDate, DayYield, DFC) %>%
-  filter(DFC <= 80) %>%
-  mutate(AvgMilk80 = mean(DayYield), 
-         MinDFC = min(DFC), 
-         MaxDFC = max(DFC), 
-         sumMY80 = sum(DayYield))
-summary(df.first80d)
+# First 80 days
+df.first80d <- cumulativeMY(80)
 # Only the cows have completed 4-80 DIM milk records
 df.first80d.comp <- subset(df.first80d, 
                            MinDFC == "4" & MaxDFC == "80")
-summary(df.first80d.comp)
 df.80dmilk <- df.first80d %>%
-  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk80, sumMY80) %>%
-  distinct(FarmNo, CowId, Lactation, AvgMilk80, sumMY80)
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMY80, SumMY80) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMY80, SumMY80)
 df.80d_ind <- df.first80d.comp %>%
-  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk80, sumMY80) %>%
-  distinct(FarmNo, CowId, Lactation, AvgMilk80, sumMY80)
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMY80, SumMY80) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMY80, SumMY80)
 
 df.master2 <- merge(df.master1, df.80d_ind, 
-                    by = c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
+                    by = c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'),
+                    all.x=TRUE, all.y=TRUE)
 df.master6 <- merge(df.master5, df.80dmilk, 
-                    by = c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
-summary(df.master2)
+                    by = c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'),
+                    all.x=TRUE, all.y=TRUE)
+# First 150 days
+df.first150d <- cumulativeMY(150)
 
-df.first100d <- df.merge %>%
-  group_by(FarmNo, CowId) %>%
-  select(Lactation, CalvingDate, DayYield, DFC) %>%
-  filter(DFC <= 100) %>%
-  mutate(AvgMilk100 = mean(DayYield), MinDFC = min(DFC), MaxDFC = max(DFC), sumMY100 = sum(DayYield))
-summary(df.first100d)
+df.first150d.comp <- subset(df.first150d, 
+                            MinDFC == "4" & MaxDFC == "150")
 
-df.first100d.comp <- subset(df.first100d, MinDFC == "4" & MaxDFC == "100")
-summary(df.first100d.comp)
+df.150dmilk <- df.first150d %>%
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMY150, SumMY150) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMY150, SumMY150)
 
-df.100d_ind <- df.first100d.comp %>%
-  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk100, sumMY100) %>%
-  distinct(FarmNo, CowId, Lactation, AvgMilk100, sumMY100)
+df.150d_ind <- df.first150d.comp %>%
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMY150, SumMY150) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMY150, SumMY150)
 
-df.master3 <- merge(df.master2, df.100d_ind, by = c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
+df.master3 <- merge(df.master2, df.150d_ind, 
+                    by = c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'),
+                    all.x=TRUE, all.y=TRUE)
+df.master7 <- merge(df.master6, df.150dmilk,
+                    by = c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'),
+                    all.x=TRUE, all.y=TRUE)
 
-df.first305d <- df.merge %>%
-  group_by(FarmNo, CowId) %>%
-  select(Lactation, CalvingDate, DayYield, DFC) %>%
-  filter(DFC <= 305) %>%
-  mutate(AvgMilk305 = mean(DayYield), 
-         MinDFC = min(DFC), 
-         MaxDFC = max(DFC), 
-         sumMY305 = sum(DayYield))
-summary(df.first305d)
+# First 305 days
+df.first305d <- cumulativeMY(305)
 
 df.305dmilk <- df.first305d %>%
-  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk305, sumMY305) %>%
-  distinct(FarmNo, CowId, Lactation, AvgMilk305, sumMY305)
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMY305, SumMY305) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMY305, SumMY305)
 
-df.first305d.comp <- subset(df.first305d, MinDFC == "4" & MaxDFC == "305")
+df.first305d.comp <- subset(df.first305d, 
+                            MinDFC == "4" & MaxDFC == "305")
 
-summary(df.first305d.comp)
 df.305d_ind <- df.first305d.comp %>%
-  select(FarmNo, CowId, Lactation, CalvingDate, AvgMilk305, sumMY305) %>%
-  distinct(FarmNo, CowId, Lactation, AvgMilk305, sumMY305)
-summary(df.305d_ind)
-
-df.master4 <- merge(df.master3, df.305d_ind, by = c('FarmNo', 'CowId', 'Lactation'), all.x = TRUE, all.y = TRUE)
-summary(df.master4)
-df.master7 <-merge(df.master6, df.305dmilk, 
-                   by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
-milk <- merge(df.lact, df.master4, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE)
-summary(milk)
+  select(FarmNo, CowId, Lactation, CalvingDate, AvgMY305, SumMY305) %>%
+  distinct(FarmNo, CowId, Lactation, AvgMY305, SumMY305)
+# complete time period measurements
+df.master4 <- merge(df.master3, df.305d_ind,
+                    by = c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), 
+                    all.x = TRUE, all.y = TRUE)
+# less strict on the complete days
+df.master8 <-merge(df.master7, df.305dmilk, 
+                   by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), 
+                   all.x=TRUE, all.y=TRUE)
+df.lact$CalvingDate <- as.character(df.lact$CalvingDate)
+milk <- merge(df.lact, df.master4, 
+              by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), 
+              all.x=TRUE, all.y=TRUE)
 milk <- milk[!is.na(milk$FarmNo), ]
 
-milk_all <- merge(df.lact, df.master7, 
-                  by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), all.x=TRUE, all.y=TRUE)
+milk_all <- merge(df.lact, df.master8, 
+                  by = c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'),
+                  all.x = TRUE, all.y = TRUE)
 milk_all <- milk_all[!is.na(milk_all$FarmNo), ]
 milk_all <- milk_all[!is.na(milk_all$CalvingDate), ]
 rm(list=ls(pattern="df"))
