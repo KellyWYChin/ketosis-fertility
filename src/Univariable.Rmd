@@ -8,7 +8,6 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
 ```{r library, warning=FALSE, message = FALSE}
 library(readxl)
 library(tidyr)
@@ -34,7 +33,7 @@ all_farm_raw <- data.frame()
 
 for (i in 1001:1038) {
   # create the excel file name base on the input i
-  filename <- paste("C:/Users/user/good-enough-project-template/data/raw/", i ,", All Data, Proc, June 2020.xlsx", sep = "")
+  filename <- paste("../data/raw/", i,", All Data, Proc, June 2020.xlsx", sep = "")
 
   # load the sheets within the same excel file (the same farm)
   df.calving <- read_excel(filename, sheet = "Calving")
@@ -67,7 +66,6 @@ df.cow <- all_farm %>%
 rm(all_farm_raw)
 nrow(all_farm)
 str(all_farm)
-summary(all_farm)
 all_farm$BirthDate <- as.Date(all_farm$BirthDate)
 
 # change weird date signs to NAs
@@ -105,7 +103,7 @@ df.work.ind <- work %>%
 df.work.lact <- work %>%
   distinct(FarmNo, CowId, Lactation, .keep_all=TRUE) #5,327 cows
 
-# When was the 1st AI? If abortion happened after 1st AI? (co level)
+# When was the 1st AI? If abortion happened after 1st AI? (cow level)
 df.ins1 <- all_farm %>%
   group_by(FarmNo, CowId, Lactation) %>%
   summarize(Ins_1=min(InsNumber), 
@@ -315,7 +313,7 @@ df.lact <- all_farm %>%
 
 all_milk_raw <- data.frame()
 for (i in 1001:1038) {
-  filename <- paste("C:/Users/user/good-enough-project-template/data/raw/",i,", All Data, Proc, June 2020.xlsx", sep = "")
+  filename <- paste("../data/raw/",i,", All Data, Proc, June 2020.xlsx", sep = "")
   df.milk <- read_excel(filename, sheet = "MilkData")
   df.cowinfo <- read_excel(filename, sheet = "CowInfo")
   # change the column name of cowinfo (CowID -> CowId)
