@@ -8,6 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+# R libraries
 ```{r library, warning=FALSE, message = FALSE}
 library(readxl)
 library(tidyr)
@@ -106,28 +108,28 @@ df.work.lact <- work %>%
 
 # When was the 1st AI? If abortion happened after 1st AI? (cow level)
 df.ins1 <- all_farm %>%
-  group_by(FarmNo, CowId, Lactation) %>%
-  summarize(Ins_1=min(InsNumber), 
-            PregDate_1=min(PregDate.x), 
-            InsDate_1=min(InsDate), 
-            AbortionDate_1=min(AbortionDate))
+  group_by(FarmNo, CowId, Lactation, CalvingDate) %>%
+  summarize(First_AI=min(InsNumber), 
+            First_PregDate=min(PregDate.x), 
+            First_InsDate=min(InsDate), 
+            First_AbortionDate=min(AbortionDate))
 
 # When was the last AI? If abortion happened after last AI? (cow level)
 df.insN <- all_farm %>%
-  group_by(FarmNo, CowId, Lactation) %>%
-  summarize(Ins_N=max(InsNumber), 
-            PregDate_N=max(PregDate.x), 
-            InsDate_N=max(InsDate), 
-            AbortionDate_N=max(AbortionDate))
+  group_by(FarmNo, CowId, Lactation, CalvingDate) %>%
+  summarize(Last_AI=max(InsNumber), 
+            Last_PregDate=max(PregDate.x), 
+            Last_InsDate=max(InsDate), 
+            Last_AbortionDate=max(AbortionDate))
 
-# When Ins_N is 1, meaning the cow was inseminated only once
-df.insN$Ins_N[df.insN$Ins_N == 1] <- NA
+# When Last_AI is 1, meaning the cow was inseminated only once
+df.insN$Last_AI[df.insN$Last_AI == 1] <- NA
 # Change the last Pregnant/AI/Abortion Date into character and others NA
-df.insN$PregDate_N <- ifelse(is.na(df.insN$Ins_N), NA,
-                             as.character(df.insN$PregDate_N))
-df.insN$InsDate_N <- ifelse(is.na(df.insN$Ins_N), NA,
-                            as.character(df.insN$InsDate_N))
-df.insN$AbortionDate_N <- as.Date(df.insN$AbortionDate_N)
+df.insN$Last_PregDate <- ifelse(is.na(df.insN$Last_AI), NA,
+                             as.character(df.insN$Last_PregDate))
+df.insN$Last_InsDate <- ifelse(is.na(df.insN$Last_AI), NA,
+                            as.character(df.insN$Last_InsDate))
+df.insN$Last_AbortionDate <- as.Date(df.insN$Last_AbortionDate)
 which.max(df.insN$Gap)
 
 #################
@@ -135,9 +137,9 @@ which.max(df.insN$Gap)
 #################
 # Check data consistency
 ## What is the time differences between Abortion date and AI date?
-df.insN$PregDate_N <- as.Date(df.insN$PregDate_N)
-df.insN$InsDate_N <- as.Date(df.insN$InsDate_N)
-df.insN$Gap <- difftime(df.insN$AbortionDate_N, df.insN$InsDate_N, units="days")
+df.insN$Last_PregDate <- as.Date(df.insN$Last_PregDate)
+df.insN$Last_InsDate <- as.Date(df.insN$Last_InsDate)
+df.insN$Gap <- difftime(df.insN$Last_AbortionDate, df.insN$Last_InsDate, units="days")
 df.insN$Gap <- as.numeric(df.insN$Gap)
 summary(df.insN$Gap)
 df.insN$Gap[which(df.insN$Gap > 0)] #There is one positive value, meaning abortion
@@ -145,10 +147,10 @@ df.insN$Gap[which(df.insN$Gap > 0)] #There is one positive value, meaning aborti
 df.insN$Gap <- NULL
 
 ## What is the time differences between 1st Abortion and Preg and 1st AI?
-df.ins1$InsDate_1 <- as.Date(df.ins1$InsDate_1)
-df.ins1$PregDate_1 <- as.Date(df.ins1$PregDate_1)
-df.ins1$AbortionDate_1 <- as.Date(df.ins1$AbortionDate_1)
-df.ins1$Gap <- difftime(df.ins1$AbortionDate_1, df.ins1$InsDate_1, units="days")
+df.ins1$First_InsDate <- as.Date(df.ins1$First_InsDate)
+df.ins1$First_PregDate <- as.Date(df.ins1$First_PregDate)
+df.ins1$First_AbortionDate <- as.Date(df.ins1$First_AbortionDate)
+df.ins1$Gap <- difftime(df.ins1$First_AbortionDate, df.ins1$First_InsDate, units="days")
 df.ins1$Gap <- as.numeric(df.ins1$Gap)
 summary(df.ins1$Gap) #Just to know there are abortion happened after 1st AI
 df.ins1$Gap <- NULL
@@ -190,18 +192,14 @@ df.preg <- all_farm %>%
          PregDate.x, PregDate.y, DeterminationType, 
          AbortionDate, DaysToAbort)
 summary(df.preg)
+
 # Select the pregnancy determined by HN system (DeterminationType = 2)
 df.preg1 <- df.preg[(df.preg$DeterminationType == 2 | is.na(df.preg$DeterminationType)), ]
 summary(df.preg1)
-# Select the pregnancy determined by HN system, Physical, and Visual abort (DeterminationType = 2, 3, and 4)
-df.preg2 <- df.preg[(df.preg$DeterminationType == 2 | df.preg$DeterminationType == 3 | df.preg$DeterminationType == 4), ]
-#Find out that Determination Type 4 is confusing
 #Remove rows with FarmNo = NA
-df.preg3 <- df.preg1[!is.na(df.preg1$FarmNo), ]
-summary(df.preg3)
-df.preg1 <- df.preg3
-rm(df.preg3)
-rm(df.preg2)
+df.preg2 <- df.preg1[!is.na(df.preg1$FarmNo), ]
+summary(df.preg2)
+df.preg1 <- df.preg2
 
 #Remove column PregDate.x
 df.preg1$PregDate.x <- NULL
@@ -213,37 +211,42 @@ summary(df.preg1)
 #       TODO          #
 #  Check consistency  #
 #######################
-# Time between Calving, Preg, Culling
+# Change date to as.Date Calving, Preg, Culling, InsDate, AbortionDate
 df.preg1$CalvingDate <- as.Date(df.preg1$CalvingDate)
 df.preg1$PregDate.y <- as.Date(df.preg1$PregDate.y)
 df.preg1$CullDate <- as.Date(df.preg1$CullDate)
+df.preg1$InsDate <- as.Date(df.preg1$InsDate)
+df.preg1$AbortionDate <- as.Date(df.preg1$AbortionDate)
+
 # Culling date before 2018-06-01 is outside the cohort time
 df.preg1$CullDate[df.preg1$CullDate <= "2018-05-31"] <- NA
-# Time between (Preg and Calving Date) and (Culling and Calving Date)
-df.preg1$preg.calving <- difftime(df.preg1$PregDate.y, 
-                                  df.preg1$CalvingDate, units="days")
+
+# Time difference between (Preg and Calving Date) -> not important
+#df.preg1$preg.calving <- difftime(df.preg1$PregDate.y, df.preg1$CalvingDate, units="days")
+
+# Time difference between (Culling and Calving Date)
 df.preg1$cull.calving <- difftime(df.preg1$CullDate, 
                                   df.preg1$CalvingDate, units="days")
+# Binary variable(Culled); culled cow = 1, not culled = 0
 df.preg1$Culled <- ifelse(!is.na(df.preg1$cull.calving), 1, 0)
-summary(df.preg1)
-
-## TODO
-# Exclude rows that have negative values of time between pregnancy and calving
-#df.preg1 <- df.preg1[(df.preg1$preg.calving >=0 | is.na(df.preg1$preg.calving)), ]
-
+View(df.preg1)
 # Exclude rows that have been culled within 150 DIM
 df.preg1 <- df.preg1[-which(df.preg1$cull.calving < 150), ]
 
 # number of cows
 df.cow <- df.preg1 %>%
-  distinct(FarmNo, CowId)
+  distinct(FarmNo, CowId, CalvingDate) #4,517 cows
 
-# Remove column PregDate.x
-df.preg1$PregDate.x <- NULL
 
-df.preg1$InsDate <- as.Date(df.preg1$InsDate)
 df.preg1$preg.ins <- difftime(df.preg1$PregDate.y, df.preg1$InsDate, units="days")
 df.preg1$preg.ins <- as.numeric(df.preg1$preg.ins)
+
+
+
+## TODO
+# Exclude rows that have negative values of time between pregnancy and calving
+#df.preg1 <- df.preg1[(df.preg1$preg.calving >=0 | is.na(df.preg1$preg.calving)), ]
+
 ##　TODO 
 # Exclude the negative time difference between preg date and AI 
 #df.preg1 <- df.preg1[(df.preg1$preg.ins >=0 | is.na(df.preg1$preg.ins)), ]
@@ -253,7 +256,7 @@ df.preg1$preg.ins <- as.numeric(df.preg1$preg.ins)
 #######################################
 #   Check (AbortionDate - PregDate)   #
 #######################################
-df.preg1$AbortionDate <- as.Date(df.preg1$AbortionDate)
+
 df.preg1$abort.preg <- difftime(df.preg1$AbortionDate, df.preg1$PregDate.y, units = "days")
 df.preg1$abort.preg <- as.numeric(df.preg1$abort.preg)
 summary(df.preg1)
@@ -267,17 +270,17 @@ df.preg1 <- df.preg1[(df.preg1$DaysToAbort >=0 | is.na(df.preg1$DaysToAbort)), ]
 df.ins1 <- df.preg1 %>%
   group_by(FarmNo, CowId, Lactation, CalvingDate) %>%
   summarize(InsNumber_1 = min(InsNumber), 
-            PregDate_1 = min(PregDate.y), 
-            InsDate_1=min(InsDate), 
-            AbortionDate_1 = min(AbortionDate))
+            First_PregDate = min(PregDate.y), 
+            First_InsDate=min(InsDate), 
+            First_AbortionDate = min(AbortionDate))
 
 # last AI, one cow in only one row
 df.insN <- df.preg1 %>%
   group_by(FarmNo, CowId, Lactation, CalvingDate) %>%
   summarize(InsNumber_N = max(InsNumber), 
-            PregDate_N = max(PregDate.y), 
-            InsDate_N = max(InsDate), 
-            AbortionDate_N = max(AbortionDate))
+            Last_PregDate = max(PregDate.y), 
+            Last_InsDate = max(InsDate), 
+            Last_AbortionDate = max(AbortionDate))
 
 summary(df.insN)
 table(df.insN$InsNumber_N) #How many times does a cow be inseminated?
@@ -298,8 +301,8 @@ df.data <- merge(df.ins1, df.insN,
                  by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), 
                  all.y=TRUE, sort=F)
 
-# When Ins_N is 1, meaning the cow was inseminated only once
-#df.data$Ins_N[df.data$Ins_N == 1] <- NA
+# When Last_AI is 1, meaning the cow was inseminated only once
+#df.data$Last_AI[df.data$Last_AI == 1] <- NA
 
 df.table <- df.preg1 %>%
   distinct(FarmNo, CowId, Lactation, .keep_all=TRUE) 
