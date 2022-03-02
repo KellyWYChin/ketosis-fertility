@@ -680,41 +680,64 @@ df.two_parity <- df.two %>%
                                            fromLast=TRUE), 1, 0)) %>%
   filter(farmcow.dup == 1) #120 obs of 52 variables
 
-###########################################
-#  Merge ketosis, reproduction, and milk  #
-###########################################
-df.three <- merge(df.two, milk, by = c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), all.x = TRUE, all.y = TRUE, sort = F) #5173 obs of 64 variables
-summary(df.three) 
-
-# Exculde cows without CalvingDate
-df.three <- df.three[!is.na(df.three$CalvingDate), ] #5129 obs
-# Exclude rows that have been culled within 150 DIM
-df.three <- df.three[-which(df.three$cull.calving < 150), ] #4871 obs
-summary(df.three)
-# Exclude cows without DFC_CLA
-df.three <- df.three[!is.na(df.three$DFC_CLA), ] #4809 obs
-# Exclude cows with DFC_CLA less than 20 and more than 200
-df.three <- df.three[-which(df.three$DFC_CLA < 20 | df.three$DFC_CLA > 200), ] #4747 obs
-# Exclude cows DaysToFirstIns <20 DIM and >250 DIM
-df.three <- df.three[-which(df.three$DaysToFirstIns < 20 | df.three$DaysToFirstIns >250), ] #4732 obs
-### Exclude cows DFCFirstHeat <20 DIM and >200 DIM
-df.three <- df.three[-which(df.three$DFCFirstHeat < 20 | df.three$DFCFirstHeat > 200), ] #4727 obs
-summary(df.three)
-```
-
-## Distribution
-```{r, warning=FALSE}
-#################
-#  Descriptive  #
-#################
-# How many duplicated cows? -> 60 cows
-nrow(df.two_parity)/2
 # Check if reproduction data and ketosis are in the same parity
 df.two_parity$MedianSampleTime.x <- as.Date(df.two_parity$MedianSampleTime.x)
 df.two_parity <- df.two_parity %>%
   select(FarmNo, CowId, Lactation, CalvingDate, MedianSampleTime.x, farmcow.dup) %>%
   mutate(sample.calving = difftime(MedianSampleTime.x, CalvingDate, units="days")) # Only 4 cows did not have info for one of the parities -> remove these 4 records
-df.two_parity <- df.two_parity[!is.na(df.two_parity$sample.calving), ] #116 obs
+# Farm1002, cow 1813
+# Farm1002, cow 1817
+# Farm1010, cow 179
+# Farm1025, cow 197
+df.two_parity <- df.two_parity[-which(df.two_parity$CowId == 1813), ]
+df.two_parity <- df.two_parity[-which(df.two_parity$FarmNo == 1002& df.two_parity$CowId == 1817), ]
+df.two_parity <- df.two_parity[-which(df.two_parity$FarmNo == 1010& df.two_parity$CowId == 179), ]
+df.two_parity <- df.two_parity[-which(df.two_parity$FarmNo == 1025& df.two_parity$CowId == 197), ]
+#112 obs 7 variables
+
+###########################################
+#  Merge ketosis, reproduction, and milk  #
+###########################################
+df.three <- merge(df.two, milk, by = c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), all.x = TRUE, all.y = TRUE, sort = F) #5173 obs of 64 variables
+summary(df.three) 
+df.three$MedianSampleTime.x <- as.Date(df.three$MedianSampleTime.x)
+
+# Exclude cows without data based on the repeated 4 cows
+df.three <- df.three[-which(df.three$FarmNo == 1002 & df.three$CowId == 1813 & is.na(df.three$MedianSampleTime.x)), ]
+df.three <- df.three[-which(df.three$FarmNo == 1002 & df.three$CowId == 1817 & is.na(df.three$MedianSampleTime.x)), ]
+df.three <- df.three[-which(df.three$FarmNo == 1010 & df.three$CowId == 179 & is.na(df.three$MedianSampleTime.x)), ]
+df.three <- df.three[-which(df.three$FarmNo == 1025 & df.three$CowId == 197 & is.na(df.three$MedianSampleTime.x)), ]
+#5169 obs if 64v
+
+# Exculde cows without CalvingDate
+df.three <- df.three[!is.na(df.three$CalvingDate), ] #5125 obs
+# Exclude rows that have been culled within 150 DIM
+df.three <- df.three[-which(df.three$cull.calving < 150), ] #4868 obs
+summary(df.three)
+# Exclude cows without DFC_CLA
+df.three <- df.three[!is.na(df.three$DFC_CLA), ] #4806 obs
+# Exclude cows with DFC_CLA less than 20 and more than 200
+df.three <- df.three[-which(df.three$DFC_CLA < 20 | df.three$DFC_CLA > 200), ] #4744 obs
+# Exclude cows DaysToFirstIns <20 DIM and >250 DIM
+df.three <- df.three[-which(df.three$DaysToFirstIns < 20 | df.three$DaysToFirstIns >250), ] #4729 obs
+### Exclude cows DFCFirstHeat <20 DIM and >200 DIM
+df.three <- df.three[-which(df.three$DFCFirstHeat < 20 | df.three$DFCFirstHeat > 200), ] #4724 obs
+summary(df.three)
+```
+
+
+# Distribution
+```{r, warning=FALSE}
+#################
+#  Descriptive  #
+#################
+Three <- df.three
+TWoParity <- df.two_parity
+rm(list = ls(pattern = "df"))
+rm(list = ls(pattern = "all_"))
+
+# How many duplicated cows? -> 56 cows
+nrow(TWoParity)/2
 
 # Number of cows in a farm
 
