@@ -673,7 +673,8 @@ df.two$CalvingDate <- as.Date(df.two$CalvingDate)
 
 # Check if there are duplicated cows -> 60 duplicated cows
 df.two$farmcow <- paste(df.two$FarmNo, df.two$CowId, sep="")
-df.two_duplicateparity <- df.two %>%
+# Select cows with 2 parities
+df.two_parity <- df.two %>%
   mutate(farmcow.dup = ifelse(duplicated(farmcow)|
                                 duplicated(farmcow, 
                                            fromLast=TRUE), 1, 0)) %>%
@@ -707,9 +708,13 @@ summary(df.three)
 #  Descriptive  #
 #################
 # How many duplicated cows? -> 60 cows
-nrow(df.two_duplicateparity)/2
+nrow(df.two_parity)/2
 # Check if reproduction data and ketosis are in the same parity
-df.two_duplicateparity <- df.two_duplicateparity
+df.two_parity$MedianSampleTime.x <- as.Date(df.two_parity$MedianSampleTime.x)
+df.two_parity <- df.two_parity %>%
+  select(FarmNo, CowId, Lactation, CalvingDate, MedianSampleTime.x, farmcow.dup) %>%
+  mutate(sample.calving = difftime(MedianSampleTime.x, CalvingDate, units="days")) # Only 4 cows did not have info for one of the parities -> remove these 4 records
+df.two_parity <- df.two_parity[!is.na(df.two_parity$sample.calving), ] #116 obs
 
 # Number of cows in a farm
 
