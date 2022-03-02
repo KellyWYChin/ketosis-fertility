@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # R libraries
-```{r library, warning=FALSE, message = FALSE}
+```{r library, message=FALSE, warning=FALSE}
 library(readxl)
 library(tidyr)
 library(tidyverse)
@@ -25,7 +25,7 @@ library(roxygen2)
 # DATA PREPARATION
 
 ## Reproduction data 
-```{r, warning=FALSE}
+```{r warning=FALSE, include=FALSE}
 #########################
 #   Merge Reproduction  #
 #########################
@@ -81,7 +81,7 @@ all_farm$AbortionDate <- as.Date(all_farm$AbortionDate)
 all_farm$AbortionDate[all_farm$AbortionDate == "1899-12-31 00:00:00"] <- NA
 summary(all_farm)
 ```
-```{r, warning=FALSE}
+```{r warning=FALSE, include=FALSE}
 ##################################
 #  COW LEVEL Reproduction Events #
 ##################################
@@ -154,7 +154,7 @@ rm(list=ls(pattern="df"))
 
 ## Reproduction data 
 ### time differences between reproduction events
-```{r, warning=FALSE}
+```{r warning=FALSE, include=FALSE}
 ###########################################
 # select reproduction events of interests #
 ###########################################
@@ -194,15 +194,16 @@ df.preg1$AbortionDate <- as.Date(df.preg1$AbortionDate)
 # Culling date before 2018-06-01 is outside the cohort time
 df.preg1$CullDate[df.preg1$CullDate <= "2018-05-31"] <- NA
 
-# Time difference between (Preg and Calving Date) -> not important
-#df.preg1$preg.calving <- difftime(df.preg1$PregDate.y, df.preg1$CalvingDate, units="days")
-
+# Time difference between (Preg and Calving Date) 
+df.preg1$preg.calving <- difftime(df.preg1$PregDate.y, df.preg1$CalvingDate, units="days")
+# Time difference between (Preg and InsDate)
+df.preg1$preg.ins <- difftime(df.preg1$PregDate.y, df.preg1$InsDate, units="days") 
 # Time difference between (Culling and Calving Date)
 df.preg1$cull.calving <- difftime(df.preg1$CullDate, 
                                   df.preg1$CalvingDate, units="days")
 # Binary variable(Culled); culled cow = 1, not culled = 0
 df.preg1$Culled_Status <- ifelse(!is.na(df.preg1$cull.calving), 1, 0)
-View(df.preg1)
+#View(df.preg1)
 # Exclude rows that have been culled within 150 DIM
 df.preg1 <- df.preg1[-which(df.preg1$cull.calving < 150), ] #df.preg1 has 22987 obs of 15 variables
 
@@ -247,10 +248,29 @@ reproduction <- merge(repro, df.preg1,
                               'AbortionDate', 'DaysToAbort'), 
                        all.x = TRUE, sort=F) %>%
   distinct(FarmNo, CowId, Lactation, CalvingDate, .keep_all=TRUE) 
-summary(reproduction)
+summary(reproduction) # 5129 obs of 33 variables
 rm(list = ls(pattern="df"))
+rm(repro, work)
 
-# 5129 obs of 32 variables
+##################
+# Calving Season #
+##################
+CalvingSeason <- function(DATES){
+  WS <- as.Date("2012-1-1", format="%Y-%m-%d")
+  SE <- as.Date("2012-4-1", format="%Y-%m-%d")
+  SS <- as.Date("2012-7-1", format="%Y-%m-%d")
+  FE <- as.Date("2012-10-1", format="%Y-%m-%d")
+
+  d <- as.Date(strftime(DATES, format="2012-%m-%d"))
+  ifelse(d >= WS & d < SE, "Winter",
+         ifelse(d >= SE & d < SS, "Spring",
+                ifelse(d >= SS & d < FE, "Summer", "Fall")))
+}
+reproduction <- reproduction %>%
+  add_column(CalvingSeason =
+               CalvingSeason(reproduction$CalvingDate),
+             .after="CalvingDate") %>% # 5129 obs of 33 variables
+ # add_column(ECC = ifelse((repro$Ins.Calving <= 80 & repro$PregStatus_1 == "1"), 1, 0))
 ```
 
 ```{r, warning=FALSE}
@@ -258,11 +278,11 @@ rm(list = ls(pattern="df"))
 #  Descriptive  #
 #################
 # How many times does a cow be inseminated?
-table(repro$Last_AI) #How many times does a cow be inseminated?
+table(reproduction$Last_AI) #How many times does a cow be inseminated?
 
 # Number of cows vs number of AI
-repro$Last_AI <- as.factor(repro$Last_AI)
-ggplot(data=repro, aes(x=factor(Last_AI))) +
+reproduction$Last_AI <- as.factor(reproduction$Last_AI)
+ggplot(data=reproduction, aes(x=factor(Last_AI))) +
   geom_bar(stat="count", fill="lightblue") +
   stat_count(geom="text", size=3, aes(label=..count..)) +
   ggtitle("Number of Cows and Number of AI") + 
@@ -274,7 +294,8 @@ ggplot(data=repro, aes(x=factor(Last_AI))) +
 
 * BHB measurements did not start from the same day (mostly 3 or 4 DFC)
 * some cows have a more frequent measurement of BHB (more than once per day)
-```{r, warning=FALSE}
+
+```{r warning=FALSE, include=FALSE}
 all_keto_raw <- data.frame()
 for(i in 1001:1038){
   filename <- paste("../data/raw/",i,", All Data, Proc, June 2020.xlsx", sep = "")
@@ -288,7 +309,180 @@ summary(all_keto_raw)
 rm(list=ls(pattern="df"))
 
 all_keto_raw$rDFC <- round(all_keto_raw$DFC)
-summary(all_keto_raw)
+# Change the column name "Parity" to "Lactation"
+colnames(all_keto_raw)[colnames(all_keto_raw) == "Parity"] <- "Lactation"
+summary(all_keto_raw) #161708 obs of 12 variables
+```
+```{r, warning=FALSE, include=FALSE}
+##############################
+# Ketosis data within 20 DFC #
+##############################
+# Filter out all the measurements after 20 DIM
+df.avg20d.all <- all_keto_raw %>%
+  group_by(FarmNo, CowId, Lactation) %>%
+  select(Lactation, rDFC, BHBraw) %>%
+  filter(rDFC <=20) %>%
+  mutate(AvgKeto20 = mean(BHBraw, na.rm = TRUE)) %>%
+  distinct(FarmNo, CowId, Lactation, AvgKeto20) #5068 obs of 4 variables
+
+##############################################################
+# Avg milk ketone levels & Duration of ketosis within 20 DFC #
+##############################################################
+df.dur1_20 <- data.frame()
+df.dur1_20 <- all_keto_raw %>%
+  group_by(FarmNo, CowId, Lactation) %>%
+  select(DFC, rDFC, BHBraw, SamplingTime) %>%
+  filter(rDFC <= 20) %>%
+  summarise(DFC, rDFC, Lactation, BHBraw,
+            Hours_20DFC = ifelse(BHBraw >= 0.08, SamplingTime - lag(SamplingTime), 0), #Hours_20DFC = if single measure of BHBraw is over 0.08, the duration of BHBraw over 0.08 will be calculated in hours
+            AvgKeto20_all = mean(BHBraw, na.rm = TRUE),
+            MaxDFC = max(rDFC),
+            MedianSampleTime = median(SamplingTime)) %>% 
+  mutate(KetoHours20 = sum(Hours_20DFC, na.rm=TRUE)) #91725 obs of 11 variables
+
+df.dur20 <- df.dur1_20 %>%
+  distinct(FarmNo, CowId, Lactation, KetoHours20, MedianSampleTime, AvgKeto20_all) #5068 obs of 6 variables
+
+# Test if cows cover 2 lactation are still involved in the dataset
+df.test <- df.dur20 %>%
+  filter(FarmNo == 1002, CowId == 581)
+
+## Strictness of the days of measurement 
+# Select all cows that have the maxDFC above 10
+df.avg10_20d <- df.dur1_20 %>% 
+  filter(MaxDFC >= 10) %>% #91594 obs of 11 variables
+  distinct(FarmNo, CowId, Lactation, 
+           AvgKeto20_all, KetoHours20, MedianSampleTime) #5035 obs of 6 variables
+colnames(df.avg10_20d)[colnames(df.avg10_20d) == "AvgKeto20_all"] <- "AvgKeto20_atleast10"
+
+# Only select cows that have the maxDFC = 20
+df.avgmax20d <- df.dur1_20 %>%
+  filter(MaxDFC == 20) %>% #83951 obs of 11 variables
+  distinct(FarmNo, CowId, Lactation, 
+           AvgKeto20_all, KetoHours20, MedianSampleTime) #4524 obs of 6 variables
+colnames(df.avgmax20d)[colnames(df.avgmax20d) == "AvgKeto20_all"] <- "AvgKeto20_atleast20"
+# Duplicated lactatrions cows exist?
+df.test <- df.avgmax20d %>%
+  filter(FarmNo == 1002, CowId == 581)
+
+# Merge data (Average 20DFC KETOSIS)
+df.keto1 <- merge(df.avg10_20d, df.avgmax20d, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoHours20'), all.x=TRUE, all.y=TRUE) #5035 obs of 7 variables
+df.keto2 <- merge(df.dur20, df.keto1, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoHours20'), all.x=TRUE, all.y=TRUE) #5068 ofbs of 8 variables
+
+######################################################
+# When did the cow has the highest BHB within 20DFC? #
+######################################################
+df.max20d.all <- all_keto_raw %>%
+  group_by(FarmNo, CowId, Lactation) %>%
+  select(rDFC, BHBraw) %>%
+  filter(rDFC <= 20) %>% #91725 obs of 5 variables
+  filter(BHBraw == max(BHBraw)) #5105 obs of 5 variables
+names(df.max20d.all)[names(df.max20d.all) == "BHBraw"] <- "MaxKeto20"
+names(df.max20d.all)[names(df.max20d.all) == "rDFC"] <- "MaxKetoDFC20"
+
+df.keto3 <- merge(df.keto2, df.max20d.all, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5105 obs of 10 variables
+
+##########################################
+# Number of times BHB>0.08 within 20 DFC #
+##########################################
+df.highketo.20d <- df.dur1_20 %>%
+  filter(BHBraw >= 0.08) %>% #21443 obs of 11 variables
+  group_by(FarmNo, CowId, Lactation) %>%
+  mutate(nHighKeto20 = n()) %>%
+  distinct(FarmNo, CowId, Lactation, nHighKeto20) #3028 obs of 4 variables
+
+df.ketosis20 <- merge(df.keto3, df.highketo.20d, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5105 obs of 11 variables
+
+###########
+# 60 days #
+##############################
+# Ketosis data within 60 DFC #
+##############################################################
+# Avg milk ketone levels & Duration of ketosis within 60 DFC #
+##############################################################
+df.dur1_60 <- data.frame()
+df.dur1_60 <- all_keto_raw %>%
+  group_by(FarmNo, CowId, Lactation) %>%
+  select(DFC, rDFC, BHBraw, SamplingTime) %>%
+  filter(rDFC <= 60) %>%
+  summarise(DFC, rDFC, Lactation, BHBraw,
+            Hours_60DFC = ifelse(BHBraw >= 0.08, SamplingTime - lag(SamplingTime), 0), #Hours_60DFC = if single measure of BHBraw is over 0.08, the duration of BHBraw over 0.08 will be calculated in hours
+            AvgKeto60_all = mean(BHBraw, na.rm = TRUE),
+            MaxDFC60 = max(rDFC),
+            MedianSampleTime = median(SamplingTime)) %>% 
+  mutate(KetoHours60 = sum(Hours_60DFC, na.rm=TRUE)) #159632 obs of 11 variables
+
+df.dur60 <- df.dur1_60 %>%
+  distinct(FarmNo, CowId, Lactation, KetoHours60, MedianSampleTime, AvgKeto60_all) #5107 obs of 6 variables
+
+# Test if cows cover 2 lactation are still involved in the dataset
+df.test <- df.dur60 %>%
+  filter(FarmNo == 1002, CowId == 581)
+
+## Strictness of the days of measurement 
+# Select all cows that have the maxDFC above 10
+df.avg10_60d <- df.dur1_60 %>% 
+  filter(MaxDFC60 >= 10) %>% #159526 obs of 11 variables
+  distinct(FarmNo, CowId, Lactation, 
+           AvgKeto60_all, KetoHours60, MedianSampleTime) #5068 obs of 6 variables
+colnames(df.avg10_60d)[colnames(df.avg10_60d) == "AvgKeto60_all"] <- "AvgKeto60_atleast10"
+
+# Only select cows that have the maxDFC >= 30
+df.avgmax60d <- df.dur1_60 %>%
+  filter(MaxDFC60 >= 30) %>% #158279 obs of 11 variables
+  distinct(FarmNo, CowId, Lactation, 
+           AvgKeto60_all, KetoHours60, MedianSampleTime) #4987 obs of 6 variables
+colnames(df.avgmax60d)[colnames(df.avgmax60d) == "AvgKeto60_all"] <- "AvgKeto60_atleast30"
+# Duplicated lactatrions cows exist?
+df.test <- df.avgmax60d %>%
+  filter(FarmNo == 1002, CowId == 581)
+
+# Merge data (Average 60DFC KETOSIS)
+df.keto1 <- merge(df.avg10_60d, df.avgmax60d, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoHours60'), all.x=TRUE, all.y=TRUE) #5081 obs of 7 variables
+df.keto2 <- merge(df.dur60, df.keto1, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoHours60'), all.x=TRUE, all.y=TRUE) #5107 ofbs of 8 variables
+
+######################################################
+# When did the cow has the highest BHB within 60DFC? #
+######################################################
+df.max60d.all <- all_keto_raw %>%
+  group_by(FarmNo, CowId, Lactation) %>%
+  select(rDFC, BHBraw) %>%
+  filter(rDFC <= 60) %>% #159632 obs of 5 variables
+  filter(BHBraw == max(BHBraw)) #5121 obs of 5 variables
+names(df.max60d.all)[names(df.max60d.all) == "BHBraw"] <- "MaxKeto60"
+names(df.max60d.all)[names(df.max60d.all) == "rDFC"] <- "MaxKetoDFC60"
+
+df.keto3 <- merge(df.keto2, df.max60d.all, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5121 obs of 10 variables
+
+##########################################
+# Number of times BHB>0.08 within 60 DFC #
+##########################################
+df.highketo.60d <- df.dur1_60 %>%
+  filter(BHBraw >= 0.08) %>% #40812 obs of 11 variables
+  group_by(FarmNo, CowId, Lactation) %>%
+  mutate(nHighKeto60 = n()) %>%
+  distinct(FarmNo, CowId, Lactation, nHighKeto60) #3805 obs of 4 variables
+
+df.ketosis60 <- merge(df.keto3, df.highketo.60d, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5121 obs of 11 variables
+
+# if the cow does not have any value over 0.08 within 20 DFC, the number of High BHB measure = 0
+df.ketosis60$nHighKeto20 <- ifelse((!is.na(df.ketosis60$MaxKeto20) & (df.ketosis60$MaxKeto20 < 0.08)), 0, df.ketosis60$nHighKeto20)
+# if the cow does not have any value over 0.08 within 60 DFC, the number of High BHB measure = 0
+df.ketosis60$nHighKeto60 <- ifelse((!is.na(df.ketosis60$MaxKeto60) & (df.ketosis60$MaxKeto60 < 0.08)), 0, df.ketosis60$nHighKeto60)
+
+#########################################
+# Merge all ketosis variables (20 + 60) #
+#########################################
+ketosis <- merge(df.ketosis20, df.ketosis60, by = c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5146 obs of 19 variables
+rm(list = ls(pattern = "df"))
+```
+
+```{r, warning=FALSE}
+#################
+#     TODO      #
+#  Descriptive  #
+#################
+hist(ketosis$AvgKeto20_atleast20, main = "Histogram of mean milk BHBraw of each cows", xlab = "mean milk BHBraw (mmol/L)")
 ```
 
 ## Milk data
@@ -343,8 +537,7 @@ df.merge <- df.merge1
 # How many cows remain?
 df.merge2 <- df.merge1 %>%
   distinct(FarmNo, CowId) #5,119 cows
-```
-```{r, warning=FALSE}
+
 #############################
 #   Cumulative milk yield   #
 #############################

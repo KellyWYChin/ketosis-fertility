@@ -11,7 +11,7 @@ cumulativeMY <- function(D){
 }
 
 # Define seasons
-getSeason <- function(DATES){
+CalvingSeason <- function(DATES){
   WS <- as.Date("2012-1-1", format="%Y-%m-%d")
   SE <- as.Date("2012-4-1", format="%Y-%m-%d")
   SS <- as.Date("2012-7-1", format="%Y-%m-%d")

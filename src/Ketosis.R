@@ -9,11 +9,11 @@ all_keto_raw <- data.frame()
 for(i in 1001:1038){
   filename <- paste("C:/Data/",i,", All Data, Proc, June 2020.xlsx", sep = "")
   df.keto <- read_excel(filename, sheet = "Ketosis")
-  
+
   all_keto_raw <- bind_rows(all_keto_raw, df.keto) %>%
     group_by(FarmNo, CowId) %>%
     arrange(DFC, .by_group = TRUE)
-} 
+}
 summary(all_keto_raw)
 rm(list=ls(pattern="df"))
 
@@ -33,7 +33,8 @@ df.avg20d <- all_keto_raw %>%
   group_by(FarmNo, CowId) %>%
   select(Parity, rDFC, BHBraw) %>%
   filter(rDFC <=20) %>%
-  mutate(AvgKeto20 = mean(BHBraw), MaxDFC = max(rDFC))
+  mutate(AvgKeto20 = mean(BHBraw),
+         MaxDFC = max(rDFC))
 
 ################################################################################
 ####### find out the duration of ketosis within first 20 DFC ###################
@@ -59,7 +60,7 @@ df.avg10d.ind <- df.avg10d.comp %>%
   distinct(FarmNo, CowId, Parity, AvgKeto20)
 names(df.avg10d.ind)[names(df.avg10d.ind) == "AvgKeto20"] <- "AvgKeto10"
 
-#only select cows that have the maxDFC = 20 
+#only select cows that have the maxDFC = 20
 df.avg20d.comp  <- subset(df.avg20d, MaxDFC == "20")
 df.avg20d.ind <- df.avg20d.comp %>%
   distinct(FarmNo, CowId, Parity, AvgKeto20)
@@ -110,7 +111,7 @@ df.max60d.all <- all_keto_raw %>%
   filter(BHBraw == max(BHBraw))
 names(df.max60d.all)[names(df.max60d.all) == "BHBraw"] <- "MaxKeto60"
 names(df.max60d.all)[names(df.max60d.all) == "rDFC"] <- "MaxKetoDFC60"
-  
+
 keto <- merge(df.keto6, df.max60d.all, c=by('FarmNo', 'CowId'), all.x=TRUE, all.y=TRUE)
 summary(keto)
 rm(list=ls(pattern="df"))
@@ -125,7 +126,7 @@ summary(keto)
 #####Exclude all the duplicated cows due to data inconsistency##################
 test1 <- keto %>%
   distinct(FarmNo, CowId, .keep_all=TRUE)
-test2 <- keto %>%  
+test2 <- keto %>%
   distinct(FarmNo, CowId, Parity)
 test2$farmcow <- paste(test2$FarmNo, test2$CowId, sep="") #stick FarmNo and CowId together
 test3 <- test2 %>%
@@ -145,7 +146,7 @@ rm(list=ls(pattern="df."))
 summary(keto)
 
 keto <- keto %>%
-  add_column(KetoCow10 = 
+  add_column(KetoCow10 =
                ifelse(keto$AvgKeto10 >= 0.08, "1", "0"), .after="AvgKeto10")
 names(keto)[names(keto) == "Parity"] <- "Lactation"
 
@@ -173,25 +174,25 @@ summary(keto$MaxKeto20)
 summary(keto$MaxKetoDFC20)
 ### ketosis dynamics WITHIN 20 DIM
 # Group1: categorize ketosis by AvgKeto10 = range 1: AvgKeto10 <0.05; 2: 0.05-0.08; 3: >0.08
-# Group1.1: categorize ketosis by AvgKeto10 = 1st Qu < 0.054; median: 0.054-0.061; 3rd Qu: 0.061-0.076; over 3rd Qu: >0.076 
+# Group1.1: categorize ketosis by AvgKeto10 = 1st Qu < 0.054; median: 0.054-0.061; 3rd Qu: 0.061-0.076; over 3rd Qu: >0.076
 # Group2: categorize ketosis by nHighKeto20 = range 1: 0 (never 0.08); 2: 1-5; 3: >5
 # Group3: categorize ketosis by MaxKeto20 = range 1: MaxKeto20 <0.07; 2: 0.07-0.08; 3: 0.08-0.12; 4: >=0.12
 # Group4: categorize ketosis by MaxKetoDFC20 = early: MaxKetoDFC20 < 5; middle: MaxKetoDFC 5-15; late: > 15
 keto <- keto %>%
   add_column(KetoGroup1 = ifelse(keto$AvgKeto10 < 0.05, "low",
-                                 ifelse(keto$AvgKeto10 >= 0.05 & keto$AvgKeto10 < 0.08, "middle", 
+                                 ifelse(keto$AvgKeto10 >= 0.05 & keto$AvgKeto10 < 0.08, "middle",
                                         ifelse(keto$AvgKeto10 >= 0.08, "high", keto$AvgKeto10))), .after="AvgKeto10") %>%
-  add_column(KetoGroup1.1 = ifelse(keto$AvgKeto10 < 0.054, "1st Qu", 
+  add_column(KetoGroup1.1 = ifelse(keto$AvgKeto10 < 0.054, "1st Qu",
                                    ifelse(keto$AvgKeto10 >= 0.054 & keto$AvgKeto10 < 0.061, "median",
-                                          ifelse(keto$AvgKeto10 >= 0.061 & keto$AvgKeto10 < 0.076, "3rd Qu", 
+                                          ifelse(keto$AvgKeto10 >= 0.061 & keto$AvgKeto10 < 0.076, "3rd Qu",
                                                  ifelse(keto$AvgKeto10 >=0.076, "over 3rd Qu", keto$AvgKeto10)))), .after="KetoGroup1") %>%
   add_column(KetoGroup2 = ifelse(keto$nHighKeto20 == 0, "never",
                                  ifelse(keto$nHighKeto20 >= 1 & keto$nHighKeto20 <= 5, "seldom",
-                                        ifelse(keto$nHighKeto20 > 5 & keto$nHighKeto20 < 11, "sometimes", 
+                                        ifelse(keto$nHighKeto20 > 5 & keto$nHighKeto20 < 11, "sometimes",
                                                ifelse(keto$nHighKeto20 >= 11, "usually", keto$nHighKeto20)))), .after="nHighKeto20") %>%
-  add_column(KetoGroup3 = ifelse(keto$MaxKeto20 < 0.07, "low", 
-                                 ifelse(keto$MaxKeto20 >= 0.07 & keto$MaxKeto20 < 0.08, "middle", 
-                                        ifelse(keto$MaxKeto20 >= 0.08 & keto$MaxKeto20 <0.12, "higher", 
+  add_column(KetoGroup3 = ifelse(keto$MaxKeto20 < 0.07, "low",
+                                 ifelse(keto$MaxKeto20 >= 0.07 & keto$MaxKeto20 < 0.08, "middle",
+                                        ifelse(keto$MaxKeto20 >= 0.08 & keto$MaxKeto20 <0.12, "higher",
                                                ifelse(keto$MaxKeto20 >=0.12, "very high", keto$MaxKeto20)))), .after="MaxKeto20") %>%
   add_column(KetoGroup4 = ifelse(keto$MaxKetoDFC20 < 5, "early",
                                  ifelse(keto$MaxKetoDFC20 >= 5 & keto$MaxKetoDFC20 <= 15, "middle",
@@ -212,14 +213,14 @@ summary(keto$MaxKetoDFC60)
 keto <- keto %>%
   add_column(KetoGroup5 = ifelse(keto$nHighKeto60 == 0, "never",
                                  ifelse(keto$nHighKeto60 >= 1 & keto$nHighKeto60 <= 5, "seldom",
-                                        ifelse(keto$nHighKeto60 > 5 & keto$nHighKeto60 < 11, "sometimes", 
+                                        ifelse(keto$nHighKeto60 > 5 & keto$nHighKeto60 < 11, "sometimes",
                                                ifelse(keto$nHighKeto60 >= 11, "usually", keto$nHighKeto60)))), .after="nHighKeto60") %>%
-  add_column(KetoGroup6 = ifelse(keto$MaxKeto60 <= 0.07, "low", 
-                                 ifelse(keto$MaxKeto60 > 0.07 & keto$MaxKeto60 <= 0.08, "middle", 
-                                        ifelse(keto$MaxKeto60 > 0.08 & keto$MaxKeto60 <= 0.12, "higher", 
+  add_column(KetoGroup6 = ifelse(keto$MaxKeto60 <= 0.07, "low",
+                                 ifelse(keto$MaxKeto60 > 0.07 & keto$MaxKeto60 <= 0.08, "middle",
+                                        ifelse(keto$MaxKeto60 > 0.08 & keto$MaxKeto60 <= 0.12, "higher",
                                                ifelse(keto$MaxKeto60 > 0.12, "very high", keto$MaxKeto60)))), .after="MaxKeto60") %>%
   add_column(KetoGroup7 = ifelse(keto$MaxKetoDFC60 <= 7, "first week",
-                                 ifelse(keto$MaxKetoDFC60 > 7 & keto$MaxKetoDFC60 <= 14, "2nd week", 
+                                 ifelse(keto$MaxKetoDFC60 > 7 & keto$MaxKetoDFC60 <= 14, "2nd week",
                                         ifelse(keto$MaxKetoDFC60 > 14 & keto$MaxKetoDFC60 <=30, "first month",
                                                ifelse(keto$MaxKetoDFC60 > 30, "2nd month", keto$MaxKetoDFC60)))), .after="MaxKetoDFC60")
 
@@ -234,7 +235,7 @@ summary(keto$KetoDays)
 ggplot(data=keto, aes(x=KetoDays)) +
   geom_histogram(col="red", fill="green", alpha=0.2) +
   scale_x_continuous(breaks = seq(0, 20, by=5)) +
-  ggtitle("Days of milk BHB over 0.08 mmol/L within 20 DFC in 38 farms") 
+  ggtitle("Days of milk BHB over 0.08 mmol/L within 20 DFC in 38 farms")
 h1 <- hist(keto$KetoDays, xlim = c(0, 20), ylim = c(0, 3000), main="Days of milk BHB over 0.08 mmol/L within 20 DIM")
 text(h1$mids, h1$counts, labels=h1$counts, adj=c(0.5, -0.5))
 summary(keto)
@@ -242,14 +243,14 @@ summary(keto)
 counts <- table(keto$FarmNo)
 ggplot(data=keto, aes(x=factor(FarmNo))) +
   geom_bar(stat="count", fill="orange") +
-  stat_count(geom="text", size = 4, aes(label=..count..)) 
+  stat_count(geom="text", size = 4, aes(label=..count..))
 summary(keto_FarmLevel$CowNo)
 sum(keto_FarmLevel$CowNo)
 #Lactation distribution
 ggplot(data=keto, aes(x=factor(Lactation))) +
   geom_bar(stat = "count", fill="orange")+
   stat_count(geom = "text", size= 4, aes(label=..count..)) +
-  ggtitle("Parity distribution") + xlab("Parity") 
+  ggtitle("Parity distribution") + xlab("Parity")
 summary(keto$`AvgKeto_1-20`)
 count(keto %>%
   filter(keto$`AvgKeto_1-20` >= 0.08))
@@ -260,7 +261,7 @@ table(keto$KetoCow10)
 summary(keto$AvgKeto20)
 count(keto %>%
         filter(keto$AvgKeto20 >= 0.08))
-#DIM where cows reached the highest milk BHB within 20 DIM 
+#DIM where cows reached the highest milk BHB within 20 DIM
 summary(keto$MaxKetoDFC20)
 ggplot(data=keto, aes(x=MaxKetoDFC20)) +
   geom_bar(stat = "count", fill="orange")+
@@ -307,7 +308,7 @@ ggplot(data = keto, aes(x = MaxKetoDFC20, fill = MaxKetoKeto1)) +
 ggplot(data=keto, aes(x=nHighKeto20)) +
   geom_bar(stat = "count", fill="orange")+
   stat_count(geom = "text", size= 3, aes(label=..count..)) +
-  ggtitle("Number of measurements that milk BHB value over 0.08 mmol/L within 20 DIM") + 
+  ggtitle("Number of measurements that milk BHB value over 0.08 mmol/L within 20 DIM") +
   xlab("Number of measurements") +
   ylab("Number of cows")
 summary(keto$nHighKeto20)
@@ -315,7 +316,7 @@ summary(keto$nHighKeto20)
 ggplot(data=keto, aes(x=nHighKeto60)) +
   geom_bar(stat = "count", fill="orange")+
   stat_count(geom = "text", size= 3, aes(label=..count..)) +
-  ggtitle("Number of measurements that milk BHB value over 0.08 mmol/L within 60 DIM") + 
+  ggtitle("Number of measurements that milk BHB value over 0.08 mmol/L within 60 DIM") +
   xlab("Number of measurements") +
   ylab("Number of cows")
 summary(keto$nHighKeto60)
@@ -323,7 +324,7 @@ summary(keto$nHighKeto60)
 #if MaxKeto60 = MaxKeto20, highest BHB value happened within 20 DIM = 0; Highest BHB value happened between 20-60 DIM = 1
 keto <- keto %>%
   add_column(DiffHighKeto = ifelse((keto$MaxKetoDFC60-keto$MaxKetoDFC20) == 0, 0, 1))
-table(keto$DiffHighKeto) 
+table(keto$DiffHighKeto)
 sum(keto$DiffHighKeto, na.rm=T)
 summary(keto$DiffHighKeto)
 
@@ -341,8 +342,8 @@ keto_summary <- keto %>%
             Mean_KetoDays = mean(KetoDays, na.rm=TRUE),
             sd_KetoDays = sd(KetoDays, na.rm=TRUE),
             Mean_MaxKetoDFC20 = mean(MaxKetoDFC20, na.rm=TRUE),
-            Mean_MaxKeto20 = mean(MaxKeto20, na.rm=TRUE), 
-            Mean_nHighKeto20 = mean(nHighKeto20, na.rm=TRUE), 
+            Mean_MaxKeto20 = mean(MaxKeto20, na.rm=TRUE),
+            Mean_nHighKeto20 = mean(nHighKeto20, na.rm=TRUE),
             Mean_nHighKeto60 = mean(nHighKeto60, na.rm=TRUE))
 keto_summary <- keto_summary %>%
   mutate_if(is.numeric, round, digits=3)
@@ -350,18 +351,18 @@ keto_summary <- keto_summary %>%
 ### Farm level #################################################################
 df.keto1 <- df.keto %>%
   group_by(FarmNo) %>%
-  summarize(CowNo = n(), 
+  summarize(CowNo = n(),
             SumKeto1 = sum(KetoCow1, na.rm=TRUE),
             SumKeto2 = sum(KetoCow2, na.rm=TRUE))
 df.keto1 <- df.keto1 %>%
-  summarize(FarmNo, CowNo, 
+  summarize(FarmNo, CowNo,
             percent1 = (SumKeto1/CowNo)*100,
-            percent2 = (SumKeto2/CowNo)*100, 
+            percent2 = (SumKeto2/CowNo)*100,
             SumKeto1, SumKeto2)
 keto_FarmLevel <- merge(df.keto1, keto_summary, by=c('FarmNo'), all.x=TRUE, all.y=TRUE)
 write.csv(keto_FarmLevel, "FarmLevel_Ketosis.csv")
 summary(keto_FarmLevel)
-  
+
 summary(keto)
 summary(keto_summary)
 
@@ -371,7 +372,7 @@ summary(keto_summary)
 
 
 
-repro_milk_keto <- merge(repro_milk, keto, c = by('FarmNo', 'CowId'), all.x = TRUE, all.y = TRUE)                            
+repro_milk_keto <- merge(repro_milk, keto, c = by('FarmNo', 'CowId'), all.x = TRUE, all.y = TRUE)
 repro_milk_keto$Parity <- NULL
 summary(repro_milk_keto)
 # exclude the cows without CalvingDate records
@@ -401,7 +402,7 @@ ggplot(data=repro_milk_keto, aes(x=MaxKeto20)) +
   facet_wrap(repro_milk_keto$ad_Lactation) +
   ggtitle("Maximum Milk BHBraw within 20 DFC in Different Parity")
 
-scatter.hist(repro_milk_keto$ad_Lactation, repro_milk_keto$AvgKeto20, xlab="Lactation", ylab="Average 20d Milk BHB")  
+scatter.hist(repro_milk_keto$ad_Lactation, repro_milk_keto$AvgKeto20, xlab="Lactation", ylab="Average 20d Milk BHB")
 scatter.hist(repro_milk_keto$ad_Lactation, repro_milk_keto$MaxKeto20, xlab="Lactation", ylab="Max Milk BHB within 20d")
 scatter.hist(repro_milk_keto$ad_Lactation, repro_milk_keto$AvgMilk305, xlab="Lactation", ylab="Average 305d Milk Yield")
 scatter.hist(repro_milk_keto$AvgMilk20, repro_milk_keto$AvgKeto20, xlab="Average Milk Yield in first 20d", ylab="Average Milk BHB in first 20d ")
