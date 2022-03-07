@@ -63,10 +63,11 @@ for (i in 1001:1038) {
 rm(list=ls(pattern="df"))
 summary(all_farm_raw)
 
-# Delete all the rows that without calving date
-all_farm <- subset(all_farm_raw, !is.na(all_farm_raw$CalvingDate))
+# Delete all the rows that without calving date and FarmNo
+all_farm <- subset(all_farm_raw, !is.na(all_farm_raw$CalvingDate)) #46013 obs 31v
+all_farm <- subset(all_farm, !is.na(all_farm$FarmNo)) #45412 obs 31v
 df.cow <- all_farm %>%
-  distinct(FarmNo, CowId)
+  distinct(FarmNo, CowId) #5069 obs
 rm(all_farm_raw)
 nrow(all_farm)
 str(all_farm)
@@ -103,10 +104,10 @@ work <- all_farm%>%
 
 # How many cows in 38 farms will remain?
 df.work.ind <- work %>%
-  distinct(FarmNo, CowId, .keep_all = TRUE) #5,262 cows
+  distinct(FarmNo, CowId, .keep_all = TRUE) #5,069 cows
 # How many cows have 2 lactation data?
 df.work.lact <- work %>%
-  distinct(FarmNo, CowId, Lactation, .keep_all=TRUE) #5,327 cows
+  distinct(FarmNo, CowId, Lactation, .keep_all=TRUE) #5,129 cows
 
 # When was the 1st AI? If abortion happened after 1st AI? (cow level)
 df.ins1 <- all_farm %>%
@@ -183,6 +184,8 @@ rm(df.preg2)
 df.preg1$PregDate.x <- NULL
 summary(df.preg1) #df.preg1 has 23296 obs of 13 variables
 
+df.cow <- df.preg1 %>%
+  distinct(FarmNo, CowId) #4910 cows
 #######################
 #  Check consistency  #
 #######################
@@ -204,13 +207,13 @@ df.preg1$preg.ins <- difftime(df.preg1$PregDate.y, df.preg1$InsDate, units="days
 df.preg1$cull.calving <- difftime(df.preg1$CullDate, 
                                   df.preg1$CalvingDate, units="days")
 # Binary variable(Culled); culled cow = 1, not culled = 0
-df.preg1$Culled_Status <- ifelse(!is.na(df.preg1$cull.calving), 1, 0)
+df.preg1$Culled_Status <- ifelse(is.na(df.preg1$cull.calving), 0, 1)
 #View(df.preg1)
 # 23296 obs of 17 variables
 
 # number of cows
 df.cow <- df.preg1 %>%
-  distinct(FarmNo, CowId, CalvingDate) #4,970 cows
+  distinct(FarmNo, CowId, CalvingDate) #4,970 cows (with repeated cows)
 
 # Time difference between (AbortionDate - PregDate) 
 df.preg1$abort.preg <- difftime(df.preg1$AbortionDate, 
@@ -312,7 +315,7 @@ summary(all_keto_raw) #161708 obs of 12 variables
 df.avg20d.all <- all_keto_raw %>%
   group_by(FarmNo, CowId, Lactation) %>%
   select(Lactation, rDFC, BHBraw) %>%
-  filter(rDFC <=20) %>%
+  filter(rDFC <=20) %>% #91725 obs 5v
   mutate(AvgKeto20 = mean(BHBraw, na.rm = TRUE)) %>%
   distinct(FarmNo, CowId, Lactation, AvgKeto20) #5068 obs of 4 variables
 
@@ -395,7 +398,7 @@ df.dur1_60 <- data.frame()
 df.dur1_60 <- all_keto_raw %>%
   group_by(FarmNo, CowId, Lactation) %>%
   select(DFC, rDFC, BHBraw, SamplingTime) %>%
-  filter(rDFC <= 60) %>%
+  filter(rDFC <= 60) %>% #159632 obs of 7v
   summarise(DFC, rDFC, Lactation, BHBraw,
             Hours_60DFC = ifelse(BHBraw >= 0.08, SamplingTime - lag(SamplingTime), 0), #Hours_60DFC = if single measure of BHBraw is over 0.08, the duration of BHBraw over 0.08 will be calculated in hours
             AvgKeto60_all = mean(BHBraw, na.rm = TRUE),
@@ -469,7 +472,7 @@ rm(list = ls(pattern = "df"))
 ```
 
 ## Milk data
-```{r, warning=FALSE}
+```{r, warning=FALSE, include=FALSE}
 df.lact <- all_farm %>%
   select(CowId, FarmNo, CalvingDate, Lactation, PeakYield, PeakDim) %>%
   distinct(CowId, FarmNo, Lactation, CalvingDate, .keep_all=TRUE)
@@ -530,10 +533,10 @@ cumulativeMY <- function(D){
   group_by(FarmNo, CowId, CalvingDate) %>%
   select(Lactation, DayYield, DFC) %>%
   filter(DFC <= D) %>%
-  mutate(!!paste0('AvgMY', D) := mean(DayYield), 
+  mutate(!!paste0('AvgMY', D) := mean(DayYield, na.rm = TRUE), 
          MinDFC = min(DFC), 
          MaxDFC = max(DFC), 
-         !!paste0('SumMY', D) := sum(DayYield))
+         !!paste0('SumMY', D) := sum(DayYield, na.rm = TRUE))
 }
 
 # First 20 days
@@ -736,6 +739,11 @@ df.three <- df.three[-which(df.three$DaysToFirstIns < 20 | df.three$DaysToFirstI
 df.three <- df.three[-which(df.three$DFCFirstHeat < 20 | df.three$DFCFirstHeat > 200), ] #4672 obs
 summary(df.three)
 
+# Exclude cows without AvgKeto20_atleast10
+df.three <- df.three[!is.na(df.three$AvgKeto20_atleast10), ] #4607 obs
+# Exclude cows without AvgMY20
+df.three <- df.three[!is.na(df.three$AvgMY20), ] #4506 obs
+
 # Select cows with 2 parities
 #df.three$farmcow <- paste(df.three$FarmNo, df.three$CowId, sep="")
 #df.three_twoparity <- df.three %>%
@@ -746,7 +754,7 @@ summary(df.three)
 ####################
 # Ready data frame #
 ####################
-Three <- df.three #4672 obs of 64v
+Three <- df.three #4506 obs of 64v
 #TWoParity <- df.three_twoparity #102 obs of 65v
 rm(list = ls(pattern = "df"))
 rm(list = ls(pattern = "all_"))
@@ -757,7 +765,7 @@ rm(list = ls(pattern = "all_"))
 #################
 #  Descriptive  #
 #################
-# Number of cows in this study -> 4672 cows
+# Number of cows in this study -> 4506 cows
 nrow(Three)
 
 # Number of cows in the farm
@@ -771,12 +779,14 @@ ggplot(data=Three, aes(x=fct_rev(fct_infreq(FarmNo)))) +
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank()) +
   ggtitle("Number of Cows in Each Farm") +
-  xlab("Farm ID")
+  xlab("Farm ID") +
+  ylab("#cows")
 
 ### Add variable CowNo = number of cows in a farm
 df.cowno <- data.frame(table(Three$FarmNo))
 colnames(df.cowno)[colnames(df.cowno) == "Var1"] <- "FarmNo"
 colnames(df.cowno)[colnames(df.cowno) == "Freq"] <- "CowNo"
+mean(df.cowno$CowNo)
 
 ### Number of cows in each farm
 Three <- merge(Three, df.cowno, by = c('FarmNo'), sort = F) 
@@ -790,13 +800,15 @@ Three <- Three %>%
 ```{r, warning=FALSE}
 # Number of cows in each calving season
 ggplot(data=Three, aes(x=factor(CalvingSeason))) +
-  geom_bar(stat="count", fill="orange") +
+  geom_bar(stat="count", fill="darkred") +
   stat_count(geom="text", size=5, aes(label=..count..)) +
   ggtitle("Number of Cows in Calving Seasons") +
   theme_classic() +
   xlab("Calving Seasons")
 
 # Number of cows in each lactation
+mean(Three$Lactation)
+summary(Three$Lactation)
 Three$Lactation <- as.factor(Three$Lactation)
 ggplot(data=Three, aes(x=factor(Lactation)))+
   geom_bar(stat="count", fill="skyblue") +
@@ -849,7 +861,7 @@ ggplot(data=Three, aes(x=DFCFirstHeat)) +
   geom_histogram(breaks=seq(0, 250, by=5),
                  fill="lightgreen") +
   #facet_wrap(Three$FarmNo) +
-  ggtitle("Days from Calving to First Insemination") +
+  ggtitle("Days from Calving to First Heat") +
   xlab("DFC") +
   ylab("#cows") +
   theme_classic()
@@ -859,19 +871,33 @@ ggplot(data=Three, aes(x=DaysToFirstIns)) +
   geom_histogram(breaks=seq(0, 200, by=5),
                  fill="green") +
   #facet_wrap(Three$FarmNo) +
-  ggtitle("Days from Calving to First Heat") +
+  ggtitle("Days from Calving to First Insemination") +
   xlab("DFC") +
   ylab("#cows") +
   theme_classic()
 
+#DaysToLastIns
+ggplot(data=Three, aes(x=DaysToLastIns)) +
+  geom_histogram(breaks=seq(0, 620, by=15),
+                 fill="purple") +
+  #facet_wrap(Three$FarmNo) +
+  ggtitle("Days from Calving to Last Insemination") +
+  xlab("DFC") +
+  ylab("#cows") +
+  theme_classic()
 
-ggplot(data=fix2, aes(x=AvgMilk20)) +
-  geom_histogram(breaks=seq(0, 60, by=3),
-                 col="red", fill="green", alpha=0.2) +
-  facet_wrap(fix2$ad_Lactation) +
-  ggtitle("First 20d Average Milk Yield in Different Parities")
-
-
+#Number of AIs
+df.cow <- Three %>%
+  select(FarmNo, CowId, InsNumber, Last_AI)
+Three$Last_AI <- as.factor(Three$Last_AI)
+ggplot(data=Three, aes(x=Last_AI)) +
+  geom_histogram(breaks=seq(0, 20, by=15),
+                 fill="purple") +
+  #facet_wrap(Three$FarmNo) +
+  ggtitle("Days from Calving to Last Insemination") +
+  xlab("DFC") +
+  ylab("#cows") +
+  theme_classic()
 
 ```
 

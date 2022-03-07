@@ -4,10 +4,10 @@ cumulativeMY <- function(D){
     group_by(FarmNo, CowId, CalvingDate) %>%
     select(Lactation, DayYield, DFC) %>%
     filter(DFC <= D) %>%
-    mutate(!!paste0('AvgMY', D) := mean(DayYield),
+    mutate(!!paste0('AvgMY', D) := mean(DayYield, na.rm = TRUE),
            MinDFC = min(DFC),
            MaxDFC = max(DFC),
-           !!paste0('SumMY', D) := sum(DayYield))
+           !!paste0('SumMY', D) := sum(DayYield, na.rm = TRUE))
 }
 
 # Define seasons
@@ -22,3 +22,18 @@ CalvingSeason <- function(DATES){
          ifelse(d >= SE & d < SS, "Spring",
                 ifelse(d >= SS & d < FE, "Summer", "Fall")))
 }
+
+# Exercise for computational statistics
+res <- data.frame()
+for(i in 101:110){
+  res[i] <- i*2
+}
+res
+
+x <- 101:110
+res <- rep(NA, length(x))
+res
+for(i in 1:length(x)){
+  res[i] <- x[i]*2               #to specify the position of x
+}
+res
