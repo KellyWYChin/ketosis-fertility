@@ -37,3 +37,20 @@ for(i in 1:length(x)){
   res[i] <- x[i]*2               #to specify the position of x
 }
 res
+
+x <- 101:110
+res <- rep(NA, length(x))
+res
+for(i in 1:length(x)){
+  x <- 101:110
+  res <- rep(NA, length(x))
+  res[i] <- x[i]*2               #to specify the position of x
+}
+res
+
+# Simple example function
+posfun <- function(number){  #number can be values or vectors
+  number[number < 0] <- -1*number[number <0]
+  number
+}
+posfun(-10:10)

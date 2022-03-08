@@ -50,6 +50,10 @@ library(lubridate)
 └── src                <- Source code for this project (HW)
 
 ```
+## IDEA
+The time between first cycle and first heat? -> milk BHB 
+Time between first cycle and first AI? -> milk BHB
+
 
 ## License
 
