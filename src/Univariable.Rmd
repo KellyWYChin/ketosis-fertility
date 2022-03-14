@@ -22,6 +22,7 @@ library(reader)
 library(lubridate)
 library(docstring)
 library(roxygen2)
+library(corrplot)
 ``` 
 
 # DATA PREPARATION
@@ -328,14 +329,14 @@ df.dur1_20 <- all_keto_raw %>%
   select(DFC, rDFC, BHBraw, SamplingTime) %>%
   filter(rDFC <= 20) %>%
   summarise(DFC, rDFC, Lactation, BHBraw,
-            Hours_20DFC = ifelse(BHBraw >= 0.08, SamplingTime - lag(SamplingTime), 0), #Hours_20DFC = if single measure of BHBraw is over 0.08, the duration of BHBraw over 0.08 will be calculated in hours
+            Days_20DFC = ifelse(BHBraw >= 0.08, rDFC - lag(rDFC), 0), #Hours_20DFC = if single measure of BHBraw is over 0.08, the duration of BHBraw over 0.08 will be calculated in hours
             AvgKeto20_all = mean(BHBraw, na.rm = TRUE),
             MaxDFC = max(rDFC),
             MedianSampleTime = median(SamplingTime)) %>% 
-  mutate(KetoHours20 = sum(Hours_20DFC, na.rm=TRUE)) #91725 obs of 11 variables
+  mutate(KetoDur20 = sum(Days_20DFC, na.rm=TRUE)) #91725 obs of 11 variables
 
 df.dur20 <- df.dur1_20 %>%
-  distinct(FarmNo, CowId, Lactation, KetoHours20, MedianSampleTime, AvgKeto20_all) #5068 obs of 6 variables
+  distinct(FarmNo, CowId, Lactation, KetoDur20, MedianSampleTime, AvgKeto20_all) #5068 obs of 6 variables
 
 # Test if cows cover 2 lactation are still involved in the dataset
 df.test <- df.dur20 %>%
@@ -346,22 +347,22 @@ df.test <- df.dur20 %>%
 df.avg10_20d <- df.dur1_20 %>% 
   filter(MaxDFC >= 10) %>% #91594 obs of 11 variables
   distinct(FarmNo, CowId, Lactation, 
-           AvgKeto20_all, KetoHours20, MedianSampleTime) #5035 obs of 6 variables
+           AvgKeto20_all, KetoDur20, MedianSampleTime) #5035 obs of 6 variables
 colnames(df.avg10_20d)[colnames(df.avg10_20d) == "AvgKeto20_all"] <- "AvgKeto20_atleast10"
 
 # Only select cows that have the maxDFC = 20
 df.avgmax20d <- df.dur1_20 %>%
   filter(MaxDFC == 20) %>% #83951 obs of 11 variables
   distinct(FarmNo, CowId, Lactation, 
-           AvgKeto20_all, KetoHours20, MedianSampleTime) #4524 obs of 6 variables
+           AvgKeto20_all, KetoDur20, MedianSampleTime) #4524 obs of 6 variables
 colnames(df.avgmax20d)[colnames(df.avgmax20d) == "AvgKeto20_all"] <- "AvgKeto20_atleast20"
 # Duplicated lactatrions cows exist?
 df.test <- df.avgmax20d %>%
   filter(FarmNo == 1002, CowId == 581)
 
 # Merge data (Average 20DFC KETOSIS)
-df.keto1 <- merge(df.avg10_20d, df.avgmax20d, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoHours20'), all.x=TRUE, all.y=TRUE) #5035 obs of 7 variables
-df.keto2 <- merge(df.dur20, df.keto1, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoHours20'), all.x=TRUE, all.y=TRUE) #5068 ofbs of 8 variables
+df.keto1 <- merge(df.avg10_20d, df.avgmax20d, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoDur20'), all.x=TRUE, all.y=TRUE) #5035 obs of 7 variables
+df.keto2 <- merge(df.dur20, df.keto1, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoDur20'), all.x=TRUE, all.y=TRUE) #5068 ofbs of 8 variables
 
 ######################################################
 # When did the cow has the highest BHB within 20DFC? #
@@ -400,14 +401,14 @@ df.dur1_60 <- all_keto_raw %>%
   select(DFC, rDFC, BHBraw, SamplingTime) %>%
   filter(rDFC <= 60) %>% #159632 obs of 7v
   summarise(DFC, rDFC, Lactation, BHBraw,
-            Hours_60DFC = ifelse(BHBraw >= 0.08, SamplingTime - lag(SamplingTime), 0), #Hours_60DFC = if single measure of BHBraw is over 0.08, the duration of BHBraw over 0.08 will be calculated in hours
+            Days_60DFC = ifelse(BHBraw >= 0.08, rDFC - lag(rDFC), 0), #Hours_60DFC = if single measure of BHBraw is over 0.08, the duration of BHBraw over 0.08 will be calculated in hours
             AvgKeto60_all = mean(BHBraw, na.rm = TRUE),
             MaxDFC60 = max(rDFC),
             MedianSampleTime = median(SamplingTime)) %>% 
-  mutate(KetoHours60 = sum(Hours_60DFC, na.rm=TRUE)) #159632 obs of 11 variables
+  mutate(KetoDur60 = sum(Days_60DFC, na.rm=TRUE)) #159632 obs of 11 variables
 
 df.dur60 <- df.dur1_60 %>%
-  distinct(FarmNo, CowId, Lactation, KetoHours60, MedianSampleTime, AvgKeto60_all) #5107 obs of 6 variables
+  distinct(FarmNo, CowId, Lactation, KetoDur60, MedianSampleTime, AvgKeto60_all) #5107 obs of 6 variables
 
 # Test if cows cover 2 lactation are still involved in the dataset
 df.test <- df.dur60 %>%
@@ -418,22 +419,22 @@ df.test <- df.dur60 %>%
 df.avg10_60d <- df.dur1_60 %>% 
   filter(MaxDFC60 >= 10) %>% #159526 obs of 11 variables
   distinct(FarmNo, CowId, Lactation, 
-           AvgKeto60_all, KetoHours60, MedianSampleTime) #5068 obs of 6 variables
+           AvgKeto60_all, KetoDur60, MedianSampleTime) #5068 obs of 6 variables
 colnames(df.avg10_60d)[colnames(df.avg10_60d) == "AvgKeto60_all"] <- "AvgKeto60_atleast10"
 
 # Only select cows that have the maxDFC >= 30
 df.avgmax60d <- df.dur1_60 %>%
   filter(MaxDFC60 >= 30) %>% #158279 obs of 11 variables
   distinct(FarmNo, CowId, Lactation, 
-           AvgKeto60_all, KetoHours60, MedianSampleTime) #4987 obs of 6 variables
+           AvgKeto60_all, KetoDur60, MedianSampleTime) #4987 obs of 6 variables
 colnames(df.avgmax60d)[colnames(df.avgmax60d) == "AvgKeto60_all"] <- "AvgKeto60_atleast30"
 # Duplicated lactatrions cows exist?
 df.test <- df.avgmax60d %>%
   filter(FarmNo == 1002, CowId == 581)
 
 # Merge data (Average 60DFC KETOSIS)
-df.keto1 <- merge(df.avg10_60d, df.avgmax60d, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoHours60'), all.x=TRUE, all.y=TRUE) #5081 obs of 7 variables
-df.keto2 <- merge(df.dur60, df.keto1, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoHours60'), all.x=TRUE, all.y=TRUE) #5107 ofbs of 8 variables
+df.keto1 <- merge(df.avg10_60d, df.avgmax60d, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoDur60'), all.x=TRUE, all.y=TRUE) #5081 obs of 7 variables
+df.keto2 <- merge(df.dur60, df.keto1, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoDur60'), all.x=TRUE, all.y=TRUE) #5107 ofbs of 8 variables
 
 ######################################################
 # When did the cow has the highest BHB within 60DFC? #
@@ -788,6 +789,10 @@ colnames(df.cowno)[colnames(df.cowno) == "Var1"] <- "FarmNo"
 colnames(df.cowno)[colnames(df.cowno) == "Freq"] <- "CowNo"
 mean(df.cowno$CowNo)
 
+# Average farm size
+mean(df.cowno$CowNo)
+quantile(df.cowno$CowNo, c(0.25, 0.5, 0.75))
+
 ### Number of cows in each farm
 Three <- merge(Three, df.cowno, by = c('FarmNo'), sort = F) 
 Three <- Three %>%
@@ -809,6 +814,7 @@ ggplot(data=Three, aes(x=factor(CalvingSeason))) +
 # Number of cows in each lactation
 mean(Three$Lactation)
 summary(Three$Lactation)
+
 Three$Lactation <- as.factor(Three$Lactation)
 ggplot(data=Three, aes(x=factor(Lactation)))+
   geom_bar(stat="count", fill="skyblue") +
@@ -836,6 +842,10 @@ ggplot(data=Three, aes(x=factor(Last_AI))) +
   xlab("Number of AI") +
   theme_classic()
 
+# Average number of AI
+summary(Three$Last_AI)
+mean(Three$Last_AI, na.rm = TRUE)
+
 # Culled cows during the cohort
 table(Three$Culled_Status)
 ggplot(data=Three, aes(x=cull.calving)) +
@@ -846,6 +856,9 @@ ggplot(data=Three, aes(x=cull.calving)) +
   xlab("DFC") +
   ylab("#cows") +
   theme_classic()
+# Average DFC that cows were culled
+mean(Three$cull.calving, na.rm = TRUE)
+quantile(Three$cull.calving, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
 
 # Days from calving to reproduction events (DFC_CLA)
 ggplot(data=Three, aes(x=DFC_CLA)) +
@@ -856,6 +869,10 @@ ggplot(data=Three, aes(x=DFC_CLA)) +
   xlab("DFC") +
   ylab("#cows") +
   theme_classic()
+# Average DFC_CLA
+mean(Three$DFC_CLA, na.rm = T)
+quantile(Three$DFC_CLA, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
+
 # DFCFirstHeat
 ggplot(data=Three, aes(x=DFCFirstHeat)) +
   geom_histogram(breaks=seq(0, 250, by=5),
@@ -865,6 +882,9 @@ ggplot(data=Three, aes(x=DFCFirstHeat)) +
   xlab("DFC") +
   ylab("#cows") +
   theme_classic()
+# Average DFCFirstHeat
+mean(Three$DFCFirstHeat, na.rm = T)
+quantile(Three$DFCFirstHeat, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
 
 #DaysToFirstIns
 ggplot(data=Three, aes(x=DaysToFirstIns)) +
@@ -875,6 +895,9 @@ ggplot(data=Three, aes(x=DaysToFirstIns)) +
   xlab("DFC") +
   ylab("#cows") +
   theme_classic()
+# Average DaysToFirstIns
+mean(Three$DaysToFirstIns, na.rm = T)
+quantile(Three$DaysToFirstIns, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
 
 #DaysToLastIns
 ggplot(data=Three, aes(x=DaysToLastIns)) +
@@ -887,406 +910,16 @@ ggplot(data=Three, aes(x=DaysToLastIns)) +
   theme_classic()
 
 #Number of AIs
-df.cow <- Three %>%
-  select(FarmNo, CowId, InsNumber, Last_AI)
 Three$Last_AI <- as.factor(Three$Last_AI)
-ggplot(data=Three, aes(x=Last_AI)) +
-  geom_histogram(breaks=seq(0, 20, by=15),
-                 fill="purple") +
-  #facet_wrap(Three$FarmNo) +
-  ggtitle("Days from Calving to Last Insemination") +
-  xlab("DFC") +
-  ylab("#cows") +
-  theme_classic()
-
+ggplot(data=Three, aes(x=factor(Last_AI)))+
+  geom_bar(stat="count", fill="pink") +
+  stat_count(geom="text", size=3, aes(label=..count..)) +
+  ggtitle("Number of AI Distribution") +
+  theme_classic() +
+  xlab("#AI") +
+  ylab("#cows")
+Three$Last_AI <- as.numeric(Three$Last_AI)
+mean(Three$Last_AI, na.rm = T)
 ```
 
-# Correlation
-```{r}
-plot(Three$DFC_CLA, Three$DFCFirstHeat, 
-     main = "Scatterplot of DFC to first cyclicity and first heat", 
-     xlab = "DFC to first cyclicity",
-     ylab = "DFC to first heat", pch = 19)
-
-plot(Three$DFC_CLA, Three$DaysToFirstIns, 
-     main = "Scatterplot of DFC to first cyclicity and first AI", 
-     xlab = "DFC to frist cyclicity", 
-     ylab = "DFC to first AI", pch = 19)
-
-plot(Three$ad_Lactation, Three$DFC_CLA,
-     main = "Scatterplot of Lactation and DFC to first cyclicity",
-     xlab = "Adjusted lacation groups",
-     ylab = "DFC to first cyclicity", pch = 19)
-```
-```{r}
-df.parity1 <- Three %>%
-  filter(ad_Lactation == 1)
-df.parity2 <- Three %>%
-  filter(ad_Lactation == 2)
-df.parity3 <- Three %>%
-  filter(ad_Lactation == 3)
-df.parity4 <- Three %>%
-  filter(ad_Lactation == 4)
-```
-
-## Reproduction parameters - DFC_CAL vs DFCFirstHeat
-```{r}
-par(mfrow = c(1, 4))
-plot(df.parity1$DFC_CLA, df.parity1$DFCFirstHeat, 
-     #main = "DFC to first cyclicity and first heat in first lactation", 
-     xlab = "DFC to first cyclicity",
-     ylab = "DFC to first heat (lactation = 1)", pch = 19)
-abline(lm(df.parity1$DFCFirstHeat~df.parity1$DFC_CLA))
-
-plot(df.parity2$DFC_CLA, df.parity2$DFCFirstHeat, 
-     #main = "DFC to first cyclicity and first heat in second lactation", 
-     xlab = "DFC to first cyclicity",
-     ylab = "DFC to first heat (lactation = 2)", pch = 19, col = "red")
-abline(lm(df.parity2$DFCFirstHeat~df.parity2$DFC_CLA), col = "red")
-
-plot(df.parity3$DFC_CLA, df.parity3$DFCFirstHeat, 
-     #main = "DFC to first cyclicity and first heat in third lactation", 
-     xlab = "DFC to first cyclicity",
-     ylab = "DFC to first heat (lactation = 3)", pch = 19, col = "green")
-abline(lm(df.parity3$DFCFirstHeat~df.parity3$DFC_CLA), col = "green")
-
-plot(df.parity4$DFC_CLA, df.parity4$DFCFirstHeat, 
-     #main = "DFC to first cyclicity and first heat in third lactation", 
-     xlab = "DFC to first cyclicity",
-     ylab = "DFC to first heat (lactation = 4+)", pch = 19, col = "blue")
-abline(lm(df.parity4$DFCFirstHeat~df.parity4$DFC_CLA), col = "blue")
-
-## Pearson correlation
-cor(df.parity1$DFCFirstHeat, df.parity1$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity2$DFCFirstHeat, df.parity2$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity3$DFCFirstHeat, df.parity3$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity4$DFCFirstHeat, df.parity4$DFC_CLA, use = "complete.obs", method = "pearson")
-
-## Spearman correlation
-cor(df.parity1$DFCFirstHeat, df.parity1$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity2$DFCFirstHeat, df.parity2$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity3$DFCFirstHeat, df.parity3$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity4$DFCFirstHeat, df.parity4$DFC_CLA, use = "complete.obs", method = "spearman")
-
-cor.test(df.parity1$DFCFirstHeat, df.parity1$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity2$DFCFirstHeat, df.parity2$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity3$DFCFirstHeat, df.parity3$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity4$DFCFirstHeat, df.parity4$DFC_CLA, use = "complete.obs", method = "spearman")
-```
-
-## Reproduction parameters - DFC_CAL vs DaysToFirstIns
-```{r}
-par(mfrow = c(1, 4))
-plot(df.parity1$DFC_CLA, df.parity1$DaysToFirstIns, 
-     #main = "DFC to first cyclicity and first AI in first lactation", 
-     xlab = "DFC to first cyclicity",
-     ylab = "DFC to first AI (lactation = 1)", pch = 19)
-abline(lm(df.parity1$DaysToFirstIns~df.parity1$DFC_CLA))
-
-plot(df.parity2$DFC_CLA, df.parity2$DaysToFirstIns, 
-     #main = "DFC to first cyclicity and first AI in second lactation", 
-     xlab = "DFC to first cyclicity",
-     ylab = "DFC to first AI (lactation = 2)", pch = 19, col = "red")
-abline(lm(df.parity2$DaysToFirstIns~df.parity2$DFC_CLA), col = "red")
-
-plot(df.parity3$DFC_CLA, df.parity3$DaysToFirstIns, 
-     #main = "DFC to first cyclicity and first AI in third lactation", 
-     xlab = "DFC to first cyclicity",
-     ylab = "DFC to first AI (lactation = 3)", pch = 19, col = "green")
-abline(lm(df.parity3$DaysToFirstIns~df.parity3$DFC_CLA), col = "green")
-
-plot(df.parity4$DFC_CLA, df.parity4$DaysToFirstIns, 
-     #main = "DFC to first cyclicity and first AI in third lactation", 
-     xlab = "DFC to first cyclicity",
-     ylab = "DFC to first AI (lactation = 4+)", pch = 19, col = "blue")
-abline(lm(df.parity4$DaysToFirstIns~df.parity4$DFC_CLA), col = "blue")
-
-## Pearson correlation
-cor(df.parity1$DaysToFirstIns, df.parity1$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity2$DaysToFirstIns, df.parity2$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity3$DaysToFirstIns, df.parity3$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity4$DaysToFirstIns, df.parity4$DFC_CLA, use = "complete.obs", method = "pearson")
-
-## Spearman correlation
-cor(df.parity1$DaysToFirstIns, df.parity1$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity2$DaysToFirstIns, df.parity2$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity3$DaysToFirstIns, df.parity3$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity4$DaysToFirstIns, df.parity4$DFC_CLA, use = "complete.obs", method = "spearman")
-
-cor.test(df.parity1$DaysToFirstIns, df.parity1$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity2$DaysToFirstIns, df.parity2$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity3$DaysToFirstIns, df.parity3$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity4$DaysToFirstIns, df.parity4$DFC_CLA, use = "complete.obs", method = "spearman")
-```
-
-```{r}
-# Time for DFC_CLA to DFC_FirstHeat
-
-#　
-```
-
-## Reproduction + Ketosis parameters - LastAI vs AvgKeto20_atleast10
-```{r}
-plot(Three$AvgKeto20_atleast10, Three$Last_AI, 
-     main = "Scatterplot of number of AI and average milk BHB within 20 DFC",
-     xlab = "Average milk BHB within 20 DFC",
-     ylab = "#AI", pch = 19)
-
-par(mfrow = c(2, 2))
-plot(df.parity1$AvgKeto20_atleast10, df.parity1$Last_AI, 
-     #main = "Scatterplot of number of AI and average milk BHB within 20 DFC", 
-     ylab = "#AI",
-     xlab = "AvgKeto20 (lactation = 1)", pch = 19)
-abline(lm(df.parity1$Last_AI~df.parity1$AvgKeto20_atleast10))
-abline(v = 0.08, col = "red")
-
-plot(df.parity2$AvgKeto20_atleast10, df.parity2$Last_AI, 
-     #main = "Scatterplot of number of AI and average milk BHB within 20 DFC", 
-     ylab = "#AI",
-     xlab = "AvgKeto20 (lactation = 2)", pch = 19, col = "red")
-abline(lm(df.parity2$Last_AI~df.parity2$AvgKeto20_atleast10), col = "red")
-abline(v = 0.08)
-
-plot(df.parity3$AvgKeto20_atleast10, df.parity3$Last_AI, 
-     #main = "Scatterplot of number of AI and average milk BHB within 20 DFC", 
-     ylab = "#AI",
-     xlab = "AvgKeto20 (lactation = 3)", pch = 19, col = "green")
-abline(lm(df.parity3$Last_AI~df.parity3$AvgKeto20_atleast10), col = "green")
-abline(v = 0.08, col = "red")
-
-plot(df.parity4$AvgKeto20_atleast10, df.parity4$Last_AI, 
-     #main = "Scatterplot of number of AI and average milk BHB within 20 DFC", 
-     ylab = "#AI",
-     xlab = "AvgKeto20 (lactation = 4+)", pch = 19, col = "blue")
-abline(lm(df.parity4$Last_AI~df.parity4$AvgKeto20_atleast10), col = "blue")
-abline(v = 0.08, col = "red")
-
-## Pearson correlation
-cor(df.parity1$AvgKeto20_atleast10, df.parity1$Last_AI, use = "complete.obs", method = "pearson")
-cor(df.parity2$AvgKeto20_atleast10, df.parity2$Last_AI, use = "complete.obs", method = "pearson")
-cor(df.parity3$AvgKeto20_atleast10, df.parity3$Last_AI, use = "complete.obs", method = "pearson")
-cor(df.parity4$AvgKeto20_atleast10, df.parity4$Last_AI, use = "complete.obs", method = "pearson")
-
-## Spearman correlation
-cor(df.parity1$AvgKeto20_atleast10, df.parity1$Last_AI, use = "complete.obs", method = "spearman")
-cor(df.parity2$AvgKeto20_atleast10, df.parity2$Last_AI, use = "complete.obs", method = "spearman")
-cor(df.parity3$AvgKeto20_atleast10, df.parity3$Last_AI, use = "complete.obs", method = "spearman")
-cor(df.parity4$AvgKeto20_atleast10, df.parity4$Last_AI, use = "complete.obs", method = "spearman")
-
-cor.test(df.parity1$AvgKeto20_atleast10, df.parity1$Last_AI, use = "complete.obs", method = "spearman")
-cor.test(df.parity2$AvgKeto20_atleast10, df.parity2$Last_AI, use = "complete.obs", method = "spearman")
-cor.test(df.parity3$AvgKeto20_atleast10, df.parity3$Last_AI, use = "complete.obs", method = "spearman")
-cor.test(df.parity4$AvgKeto20_atleast10, df.parity4$Last_AI, use = "complete.obs", method = "spearman")
-```
-
-## Reproduction + Ketosis parameters - DFC_CLA vs nHighKeto20
-```{r}
-plot(Three$nHighKeto20, Three$DFC_CLA, 
-     main = "Scatterplot of count milk BHB levels over threshold within 20 DFC and DFC to first cyclicity",
-     xlab = "Number of time milk BHB over threshold within 20 DFC",
-     ylab = "DFC to first cyclicity", pch = 19)
-
-par(mfrow = c(2, 2))
-plot(df.parity1$nHighKeto20, df.parity1$DFC_CLA, 
-     #main = "DFC to first cyclicity and average milk BHB within 20 DFC", 
-     ylab = "DFC to first cyclicity",
-     xlab = "nHighKeto20 (lactation = 1)", pch = 19)
-abline(lm(df.parity1$DFC_CLA~df.parity1$nHighKeto20))
-
-plot(df.parity2$nHighKeto20, df.parity2$DFC_CLA, 
-     #main = "DFC to first cyclicity and average milk BHB within 20 DFC", 
-     ylab = "DFC to first cyclicity",
-     xlab = "nHighKeto20 (lactation = 2)", pch = 19, col = "red")
-abline(lm(df.parity2$DFC_CLA~df.parity2$nHighKeto20), col = "red")
-
-plot(df.parity3$nHighKeto20, df.parity3$DFC_CLA, 
-     #main = "DFC to first cyclicity and average milk BHB within 20 DFC", 
-     ylab = "DFC to first cyclicity",
-     xlab = "nHighKeto20 (lactation = 3)", pch = 19, col = "green")
-abline(lm(df.parity3$DFC_CLA~df.parity3$nHighKeto20), col = "green")
-
-plot(df.parity4$nHighKeto20, df.parity4$DFC_CLA, 
-     #main = "DFC to first cyclicity and average milk BHB within 20 DFC", 
-     ylab = "DFC to first cyclicity",
-     xlab = "nHighKeto20 (lactation = 4+)", pch = 19, col = "blue")
-abline(lm(df.parity4$DFC_CLA~df.parity4$nHighKeto20), col = "blue")
-
-## Pearson correlation
-cor(df.parity1$nHighKeto20, df.parity1$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity2$nHighKeto20, df.parity2$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity3$nHighKeto20, df.parity3$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity4$nHighKeto20, df.parity4$DFC_CLA, use = "complete.obs", method = "pearson")
-
-## Spearman correlation
-cor(df.parity1$nHighKeto20, df.parity1$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity2$nHighKeto20, df.parity2$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity3$nHighKeto20, df.parity3$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity4$nHighKeto20, df.parity4$DFC_CLA, use = "complete.obs", method = "spearman")
-
-cor.test(df.parity1$nHighKeto20, df.parity1$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity2$nHighKeto20, df.parity2$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity3$nHighKeto20, df.parity3$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity4$nHighKeto20, df.parity4$DFC_CLA, use = "complete.obs", method = "spearman")
-```
-
-## Reproduction + Ketosis parameters - DFC_CAL vs AvgKeto20_atleast10
-```{r}
-## DFC_CLA vs Average milk BHB levels
-plot(Three$AvgKeto20_atleast10, Three$DFC_CLA, 
-     main = "Scatterplot of average milk BHB levels and DFC to first cyclicity",
-     xlab = "Average milk BHB levels (mmol/L)",
-     ylab = "DFC to first cyclicity", pch = 19)
-
-par(mfrow = c(2, 2))
-plot(df.parity1$AvgKeto20_atleast10, df.parity1$DFC_CLA, 
-     #main = "DFC to first cyclicity and average milk BHB within 20 DFC", 
-     ylab = "DFC to first cyclicity",
-     xlab = "Average milk BHB levels (mmol/L) (lactation = 1)", pch = 19)
-abline(lm(df.parity1$DFC_CLA~df.parity1$AvgKeto20_atleast10))
-abline(v = 0.08, col = "red")
-
-plot(df.parity2$AvgKeto20_atleast10, df.parity2$DFC_CLA, 
-     #main = "DFC to first cyclicity and average milk BHB within 20 DFC", 
-     ylab = "DFC to first cyclicity",
-     xlab = "Average milk BHB levels (mmol/L) (lactation = 2)", pch = 19, col = "red")
-abline(lm(df.parity2$DFC_CLA~df.parity2$AvgKeto20_atleast10), col = "red")
-abline(v = 0.08)
-
-plot(df.parity3$AvgKeto20_atleast10, df.parity3$DFC_CLA, 
-     #main = "DFC to first cyclicity and average milk BHB within 20 DFC", 
-     ylab = "DFC to first cyclicity",
-     xlab = "Average milk BHB levels (mmol/L) (lactation = 3)", pch = 19, col = "green")
-abline(lm(df.parity3$DFC_CLA~df.parity3$AvgKeto20_atleast10), col = "green")
-abline(v = 0.08, col = "red")
-
-plot(df.parity4$AvgKeto20_atleast10, df.parity4$DFC_CLA, 
-     #main = "DFC to first cyclicity and average milk BHB within 20 DFC", 
-     ylab = "DFC to first cyclicity",
-     xlab = "Average milk BHB levels (mmol/L) (lactation = 4+)", pch = 19, col = "blue")
-abline(lm(df.parity4$DFC_CLA~df.parity4$AvgKeto20_atleast10), col = "blue")
-abline(v = 0.08, col = "red")
-
-## Pearson correlation
-cor(df.parity1$AvgKeto20_atleast10, df.parity1$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity2$AvgKeto20_atleast10, df.parity2$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity3$AvgKeto20_atleast10, df.parity3$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity4$AvgKeto20_atleast10, df.parity4$DFC_CLA, use = "complete.obs", method = "pearson")
-
-## Spearman correlation
-cor(df.parity1$AvgKeto20_atleast10, df.parity1$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity2$AvgKeto20_atleast10, df.parity2$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity3$AvgKeto20_atleast10, df.parity3$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity4$AvgKeto20_atleast10, df.parity4$DFC_CLA, use = "complete.obs", method = "spearman")
-
-cor.test(df.parity1$AvgKeto20_atleast10, df.parity1$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity2$AvgKeto20_atleast10, df.parity2$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity3$AvgKeto20_atleast10, df.parity3$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity4$AvgKeto20_atleast10, df.parity4$DFC_CLA, use = "complete.obs", method = "spearman")
-
-```
-
-## Reproduction + Ketosis parameters - DFC_CLA vs nHighKeto20
-```{r}
-plot(Three$nHighKeto20, Three$DFC_CLA, 
-     main = "Scatterplot of count milk BHB levels over threshold within 20 DFC and DFC to first cyclicity",
-     xlab = "Number of time milk BHB over threshold within 20 DFC",
-     ylab = "DFC to first cyclicity", pch = 19)
-
-par(mfrow = c(2, 2))
-plot(df.parity1$nHighKeto20, df.parity1$DFC_CLA, 
-     #main = "DFC to first cyclicity and average milk BHB within 20 DFC", 
-     ylab = "DFC to first cyclicity",
-     xlab = "nHighKeto20 (lactation = 1)", pch = 19)
-abline(lm(df.parity1$DFC_CLA~df.parity1$nHighKeto20))
-
-plot(df.parity2$nHighKeto20, df.parity2$DFC_CLA, 
-     #main = "DFC to first cyclicity and average milk BHB within 20 DFC", 
-     ylab = "DFC to first cyclicity",
-     xlab = "nHighKeto20 (lactation = 2)", pch = 19, col = "red")
-abline(lm(df.parity2$DFC_CLA~df.parity2$nHighKeto20), col = "red")
-
-plot(df.parity3$nHighKeto20, df.parity3$DFC_CLA, 
-     #main = "DFC to first cyclicity and average milk BHB within 20 DFC", 
-     ylab = "DFC to first cyclicity",
-     xlab = "nHighKeto20 (lactation = 3)", pch = 19, col = "green")
-abline(lm(df.parity3$DFC_CLA~df.parity3$nHighKeto20), col = "green")
-
-plot(df.parity4$nHighKeto20, df.parity4$DFC_CLA, 
-     #main = "DFC to first cyclicity and average milk BHB within 20 DFC", 
-     ylab = "DFC to first cyclicity",
-     xlab = "nHighKeto20 (lactation = 4+)", pch = 19, col = "blue")
-abline(lm(df.parity4$DFC_CLA~df.parity4$nHighKeto20), col = "blue")
-
-## Pearson correlation
-cor(df.parity1$nHighKeto20, df.parity1$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity2$nHighKeto20, df.parity2$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity3$nHighKeto20, df.parity3$DFC_CLA, use = "complete.obs", method = "pearson")
-cor(df.parity4$nHighKeto20, df.parity4$DFC_CLA, use = "complete.obs", method = "pearson")
-
-## Spearman correlation
-cor(df.parity1$nHighKeto20, df.parity1$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity2$nHighKeto20, df.parity2$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity3$nHighKeto20, df.parity3$DFC_CLA, use = "complete.obs", method = "spearman")
-cor(df.parity4$nHighKeto20, df.parity4$DFC_CLA, use = "complete.obs", method = "spearman")
-
-cor.test(df.parity1$nHighKeto20, df.parity1$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity2$nHighKeto20, df.parity2$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity3$nHighKeto20, df.parity3$DFC_CLA, use = "complete.obs", method = "spearman")
-cor.test(df.parity4$nHighKeto20, df.parity4$DFC_CLA, use = "complete.obs", method = "spearman")
-```
-
-## Ketosis + MY parameters - AvgKeto20_atleast10 vs AvgMY20
-```{r}
-plot(Three$AvgKeto20_atleast10, Three$AvgMY20, 
-     main = "Scatterplot of average milk yield and DFC to first cyclicity",
-     xlab = "Average milk BHB levels within 20 DFC",
-     ylab = "Average milk yield in first 20 DFC (L)", pch = 19)
-
-par(mfrow = c(2, 2))
-plot(df.parity1$AvgKeto20_atleast10, df.parity1$AvgMY20, 
-     #main = "Scatterplot of average milk yield and DFC to first cyclicity", 
-     xlab = "AvgKeto20 (lactation = 1)",
-     ylab = "AvgMY20", pch = 19)
-abline(lm(df.parity1$AvgMY20~df.parity1$AvgKeto20_atleast10))
-abline(v = 0.08, col = "red")
-
-plot(df.parity2$AvgKeto20_atleast10, df.parity2$AvgMY20, 
-     #main = "Scatterplot of average milk yield and DFC to first cyclicity", 
-     xlab = "AvgKeto20 (lactation = 2)",
-     ylab = "AvgMY20", pch = 19, col = "red")
-abline(lm(df.parity2$AvgMY20~df.parity2$AvgKeto20_atleast10), col = "red")
-abline(v = 0.08)
-
-plot(df.parity3$AvgKeto20_atleast10, df.parity3$AvgMY20, 
-     #main = "Scatterplot of average milk yield and DFC to first cyclicity", 
-     xlab = "AvgKeto20 (lactation = 3)",
-     ylab = "AvgMY20", pch = 19, col = "green")
-abline(lm(df.parity3$AvgMY20~df.parity3$AvgKeto20_atleast10), col = "green")
-abline(v = 0.08, col = "red")
-
-plot(df.parity4$AvgKeto20_atleast10, df.parity4$AvgMY20, 
-     #main = "Scatterplot of average milk yield and DFC to first cyclicity", 
-     xlab = "AvgKeto20 (lactation = 4+)",
-     ylab = "AvgMY20", pch = 19, col = "blue")
-abline(lm(df.parity4$AvgMY20~df.parity4$AvgKeto20_atleast10), col = "blue")
-abline(v = 0.08, col = "red")
-
-## Pearson correlation
-cor(df.parity1$AvgMY20, df.parity1$AvgKeto20_atleast10, use = "complete.obs", method = "pearson")
-cor(df.parity2$AvgMY20, df.parity2$AvgKeto20_atleast10, use = "complete.obs", method = "pearson")
-cor(df.parity3$AvgMY20, df.parity3$AvgKeto20_atleast10, use = "complete.obs", method = "pearson")
-cor(df.parity4$AvgMY20, df.parity4$AvgKeto20_atleast10, use = "complete.obs", method = "pearson")
-
-## Spearman correlation
-cor(df.parity1$AvgMY20, df.parity1$AvgKeto20_atleast10, use = "complete.obs", method = "spearman")
-cor(df.parity2$AvgMY20, df.parity2$AvgKeto20_atleast10, use = "complete.obs", method = "spearman")
-cor(df.parity3$AvgMY20, df.parity3$AvgKeto20_atleast10, use = "complete.obs", method = "spearman")
-cor(df.parity4$AvgMY20, df.parity4$AvgKeto20_atleast10, use = "complete.obs", method = "spearman")
-
-## Spearman correlation wtih p-value
-cor.test(df.parity1$AvgMY20, df.parity1$AvgKeto20_atleast10, use = "complete.obs", method = "spearman")
-cor.test(df.parity2$AvgMY20, df.parity2$AvgKeto20_atleast10, use = "complete.obs", method = "spearman")
-cor.test(df.parity3$AvgMY20, df.parity3$AvgKeto20_atleast10, use = "complete.obs", method = "spearman")
-cor.test(df.parity4$AvgMY20, df.parity4$AvgKeto20_atleast10, use = "complete.obs", method = "spearman")
-```
 
