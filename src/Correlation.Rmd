@@ -23,7 +23,6 @@ library(roxygen2)
 library(corrplot)
 ``` 
 
-
 # Correlation in farm info, ketosis, reproduction, milk yield
 ```{r}
 df.farm <- Three %>%
@@ -32,7 +31,8 @@ str(df.farm)
 df.farm$FarmNo <- as.integer(df.farm$FarmNo)
 cor.farm <- cor(df.farm)
 cor.farm
-corrplot(cor.farm , tl.col = "brown",
+corrplot(cor.farm, 
+         tl.col = "brown",
          tl.srt = 45, bg = "White",
          title = "\n\n Correlation plot of farm info",
          addCoef.col = "black",
@@ -95,7 +95,6 @@ corrplot(cor.milk60,
          addCoef.col = "black",
          type = "lower")
 ```
-
 
 # Reproduction parameters
 ```{r}

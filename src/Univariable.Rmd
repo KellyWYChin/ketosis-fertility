@@ -801,7 +801,11 @@ Three <- Three %>%
 Three <- merge(Three, df.cowno, by = c('FarmNo'))
 Three <- Three %>%
   relocate(CowNo, .after = FarmNo) #4724 obs 65v
+Three$CowNo.x <- NULL
+Three$CowNo.y <- NULL
 ```
+
+## General Info and reproduction parameters
 ```{r, warning=FALSE}
 # Number of cows in each calving season
 ggplot(data=Three, aes(x=factor(CalvingSeason))) +
@@ -922,4 +926,47 @@ Three$Last_AI <- as.numeric(Three$Last_AI)
 mean(Three$Last_AI, na.rm = T)
 ```
 
+## Milk parameters
+```{r}
+## PeakDim
+summary(Three$PeakDim)
+ggplot(data=Three, aes(x=PeakDim)) +
+  geom_histogram(breaks=seq(0, 640, by=20),
+                 fill="royalblue1") +
+  facet_wrap(Three$ad_Lactation, ncol = 4) +
+  ggtitle("DFC where highest peak yield was achieved") +
+  xlab("DFC") +
+  ylab("#cows") +
+  theme_classic()
 
+## AvgMY60
+summary(Three$AvgMY60)
+ggplot(data=Three, aes(x=AvgMY60)) +
+  geom_histogram(breaks=seq(0, 70, by=2.5),
+                 fill="lightblue") +
+  facet_wrap(Three$ad_Lactation, ncol = 4) +
+  ggtitle("Average milk yield within 60 DFC") +
+  xlab("Milk yield (L)") +
+  ylab("#cows") +
+  theme_classic()
+
+## SumMY60
+summary(Three$SumMY60)
+ggplot(data=Three, aes(x=SumMY60)) +
+  geom_histogram(breaks=seq(300, 4400, by=100),
+                 fill="lightblue") +
+  facet_wrap(Three$ad_Lactation, ncol = 4) +
+  ggtitle("Cumulative milk yield within 60 DFC") +
+  xlab("Cumulative milk yield (L)") +
+  ylab("#cows") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle =90))
+```
+
+## Ketosis parameters
+```{r}
+#AvgKeto20_atleast10
+summary(Three$AvgKeto20_atleast10)
+
+
+```
