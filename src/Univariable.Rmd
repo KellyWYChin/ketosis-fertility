@@ -499,31 +499,89 @@ all_milk_raw$BirthDate <- NULL
 all_milk_raw$Inclusion <- NULL
 all_milk_raw$HasMilkLactCowID <- NULL
 all_milk <- all_milk_raw %>%
-  distinct(FarmNo, CowId)
+  distinct(FarmNo, CowId) #6,387 obs 2v
 
+df.milk <- all_milk_raw %>%
+  mutate(CalvingDate = as.Date(Milkdate)-as.difftime(DFC, units = "days"))
+
+df.merge <- data.frame()
+df.merge <- merge(df.lact, df.milk, by = c('FarmNo', 'CowId', 'CalvingDate'), all.x = TRUE, all.y = TRUE) %>%
+  group_by(FarmNo, CowId, CalvingDate) %>%
+  arrange(DFC, .by_group = TRUE) #1703272 obs 11v
+
+#####################################################################################
+##  TODO  ##
 #create a milk dataframe including all milk information from 38 farms #
 df.merge <- data.frame()
 df.merge <- merge(df.lact, all_milk_raw, by=c('FarmNo', 'CowId'), all.x=TRUE, all.y=TRUE) %>%
   group_by(FarmNo, CowId, CalvingDate) %>%
   arrange(DFC, .by_group=TRUE)
 summary(df.merge)
+######################################################################################
 
 # Exclude cows without FarmNo
 df.merge <- df.merge[!is.na(df.merge$FarmNo), ]
 summary(df.merge)
 # Exclude cows without CowId, Calving Date
 df.merge$CalvingDate <- as.character(df.merge$CalvingDate)
-df.merge <- df.merge[!(is.na(df.merge$CowId) | is.na(df.merge$CalvingDate)), ]
+df.merge <- df.merge[!(is.na(df.merge$CowId) | is.na(df.merge$CalvingDate)), ] #1684328 obs 11v
+
+
+####################################################################################
+##  TODO  ##
+# Match the lactation with milk date!
+df.merge0 <- df.merge %>%
+  group_by(FarmNo, CowId, Lactation) %>%
+  mutate(Match.lactation = as.numeric(difftime(Milkdate, CalvingDate, units = "days"))) %>%
+  # Min.diff = the min. days between milk record and calving date
+  mutate(Min.diff = min(Match.lactation),
+         # Min.dfc = min. day of DFC
+         Min.dfc = min(DFC)) %>%
+  # Time difference between min. milking date and min DFC
+  mutate(diff.dfc = Min.diff - Min.dfc) %>%
+  arrange(FarmNo, CowId, DFC) #1702840 obs 15v
+
+df.test <- df.merge0 %>%
+  filter(diff.dfc > 150) %>%
+  distinct(FarmNo, CalvingDate, .keep_all = TRUE) %>%
+  arrange(FarmNo, CowId) #60 obs 15v
+####################################################################################
 
 # Exclude DIM 1-3 milk yield
 df.merge1 <- df.merge %>%
-  filter(DFC > 3)
+  filter(DFC > 3) #1670032 obs 11v
+# Exclude DIM over 305
+df.merge1 <- df.merge1 %>%
+  filter(DFC < 305) #1371880 obs 11v
 # if daily milk yield <1 kg, we name it as NA; others = original daily milk yield
 df.merge1$DayYield <- ifelse(df.merge1$DayYield < 1, NA, df.merge1$DayYield)
 df.merge <- df.merge1
+
 # How many cows remain?
 df.merge2 <- df.merge1 %>%
-  distinct(FarmNo, CowId) #5,119 cows
+  distinct(FarmNo, CowId) #5,058 cows
+
+#############
+#  PeakDFC  #
+#############
+
+df.merge <- df.merge %>%
+  group_by(FarmNo, CowId, CalvingDate) %>%
+  mutate(Dry = DFC - lag(DFC))
+
+# keep the highest DayYield in the data frame
+df.peakdim <- data.frame()
+df.peakdim <- df.merge %>%
+  group_by(FarmNo, CowId, CalvingDate) %>%
+  filter(DayYield == max(DayYield)) # 4,741 obs 12v
+# Remove the original column of PeakYield
+df.peakdim$PeakYield <- NULL
+# Remove the original column of PeakDim
+df.peakdim$PeakDim <- NULL
+
+# Name the new column and define when the peak milk yield happened
+names(df.peakdim)[names(df.peakdim) == "DFC"] <- "PeakDFC"
+names(df.peakdim)[names(df.peakdim) == "DayYield"] <- "PeakMY"
 
 #############################
 #   Cumulative milk yield   #
@@ -636,7 +694,9 @@ df.master4 <- merge(df.master3, df.305d_ind,
 df.master8 <-merge(df.master7, df.305dmilk, 
                    by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), 
                    all.x=TRUE, all.y=TRUE)
-df.lact$CalvingDate <- as.character(df.lact$CalvingDate)
+df.lact <- df.peakdim %>%
+  select(FarmNo, CowId, CalvingDate, Lactation, PeakDFC, PeakMY) # 4,741 obs 6v
+
 milk <- merge(df.lact, df.master4, 
               by=c('FarmNo', 'CowId', 'Lactation', 'CalvingDate'), 
               all.x=TRUE, all.y=TRUE)
@@ -755,10 +815,10 @@ df.three <- df.three[!is.na(df.three$AvgMY20), ] #4506 obs
 ####################
 # Ready data frame #
 ####################
-Three <- df.three #4506 obs of 64v
+#Three <- df.three #4506 obs of 64v
 #TWoParity <- df.three_twoparity #102 obs of 65v
-rm(list = ls(pattern = "df"))
-rm(list = ls(pattern = "all_"))
+#rm(list = ls(pattern = "df"))
+#rm(list = ls(pattern = "all_"))
 ```
 
 # Distribution - Univariable
