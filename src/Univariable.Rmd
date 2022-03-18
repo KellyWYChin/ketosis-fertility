@@ -23,6 +23,7 @@ library(lubridate)
 library(docstring)
 library(roxygen2)
 library(corrplot)
+library(psych)
 ``` 
 
 # DATA PREPARATION
@@ -1046,8 +1047,26 @@ mean(df.parity4$SumMY60, na.rm = T)
 
 ## Ketosis parameters
 ```{r}
+# Split data with different lactation groups
+df.parity1 <- Three %>%
+  filter(ad_Lactation == 1)
+df.parity2 <- Three %>%
+  filter(ad_Lactation == 2)
+df.parity3 <- Three %>%
+  filter(ad_Lactation == 3)
+df.parity4 <- Three %>%
+  filter(ad_Lactation == 4)
+```
+```{r}
+#library(psych)
 #AvgKeto20_atleast10
 summary(Three$AvgKeto20_atleast10)
+plot(Three$AvgKeto20_atleast10, Three$ad_Lactation, 
+     main = "Scatterplot of AvgKeto20 and lactation groups", 
+     ylab = "Lactation groups",
+     xlab = "Average milk BHB in 20 DFC (mmol/L)", pch = 19)
+abline(v = 0.08, col = "red")
+describe.by(Three$ad_Lactation, Three$AvgKeto20_atleast10) 
 
 
 ```
