@@ -1,0 +1,36 @@
+---
+title: "Model building"
+author: "Kelly Chin"
+date: "3/22/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R library
+```{r}
+
+```
+
+# Linear Model
+```{r}
+mod1 <- lm(Three$DFC_CLA~Three$AvgKeto20_atleast10)
+summary(mod1)
+plot(mod1)
+
+# Log transformation
+Three.log <- Three %>%
+  mutate(log.DFC_CLA = log(DFC_CLA),
+         log.DFCFirstHeat = log(DFCFirstHeat))
+         
+
+mod1.log <- lm(Three.log$log.DFC_CLA~Three.log$AvgKeto20_atleast10 + Three.log$ad_Lactation)
+summary(mod1.log)
+plot(mod1.log)
+
+mod2 <- lm(Three$DFC_CLA~Three$AvgKeto20_atleast10 + Three$ad_Lactation + Three$FarmNo)
+summary(mod2)
+plot(mod2)
+```

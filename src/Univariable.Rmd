@@ -749,15 +749,6 @@ df.three$MedianSampleTime.x <- as.Date(df.three$MedianSampleTime.x)
 df.test <- df.three %>%
   filter(FarmNo == 1002, CowId == 658)
 
-## TODO ###
-# Exclude cows without data based on the repeated 4 cows
-df.three <- df.three[-which(df.three$FarmNo == 1002 & df.three$CowId == 1813 & is.na(df.three$MedianSampleTime.x)), ]
-df.three <- df.three[-which(df.three$FarmNo == 1002 & df.three$CowId == 1817 & is.na(df.three$MedianSampleTime.x)), ]
-df.three <- df.three[-which(df.three$FarmNo == 1010 & df.three$CowId == 179 & is.na(df.three$MedianSampleTime.x)), ]
-df.three <- df.three[-which(df.three$FarmNo == 1025 & df.three$CowId == 197 & is.na(df.three$MedianSampleTime.x)), ]
-#5189 obs if 64v
-##########################################################################
-
 df.three <- df.three %>%
   group_by(FarmNo, CowId) %>%
   filter(Lactation == max(Lactation)) #5133 pbs 64v
@@ -838,13 +829,7 @@ quantile(df.cowno$CowNo, c(0.25, 0.5, 0.75))
 ### Number of cows in each farm
 Three <- merge(Three, df.cowno, by = c('FarmNo'), sort = F) 
 Three <- Three %>%
-  relocate(CowNo, .after = FarmNo) #4673 obs 65v
-
-Three <- merge(Three, df.cowno, by = c('FarmNo'))
-Three <- Three %>%
-  relocate(CowNo, .after = FarmNo) #4724 obs 65v
-Three$CowNo.x <- NULL
-Three$CowNo.y <- NULL
+  relocate(CowNo, .after = FarmNo) #4327 obs 65v
 ```
 
 ## General Info and reproduction parameters
@@ -978,7 +963,7 @@ ggplot(data=Three, aes(x=AvgMY20)) +
   facet_wrap(Three$ad_Lactation, ncol = 4) +
   #geom_vline(aes(xintercept = mean(AvgMY20, na.rm = TRUE)), col = "red") +
   ggtitle("Average milk yield within 20 DFC") +
-  xlab("Milk yield (L)") +
+  xlab("Milk yield (kg)") +
   ylab("#cows") +
   theme_classic() 
 
@@ -996,7 +981,7 @@ ggplot(data=Three, aes(x=SumMY20)) +
   geom_histogram(binwidth = bin, alpha = 0.5) +
   facet_wrap(Three$ad_Lactation, ncol = 4) +
   ggtitle("Cumulative milk yield within 20 DFC") +
-  xlab("Cumulative milk yield (L)") +
+  xlab("Cumulative milk yield (kg)") +
   ylab("#cows") +
   theme_classic() +
   theme(axis.text.x = element_text(angle =90))
@@ -1005,7 +990,6 @@ mean(df.parity1$SumMY20, na.rm = T)
 mean(df.parity2$SumMY20, na.rm = T)
 mean(df.parity3$SumMY20, na.rm = T)
 mean(df.parity4$SumMY20, na.rm = T)
-
 
 ## AvgMY60
 summary(Three$AvgMY60)
@@ -1016,7 +1000,7 @@ ggplot(data=Three, aes(x=AvgMY60)) +
   facet_wrap(Three$ad_Lactation, ncol = 4) +
   #geom_vline(aes(xintercept = mean(AvgMY60, na.rm = TRUE)), col = "red") +
   ggtitle("Average milk yield within 60 DFC") +
-  xlab("Milk yield (L)") +
+  xlab("Milk yield (kg)") +
   ylab("#cows") +
   theme_classic() 
 
@@ -1034,7 +1018,7 @@ ggplot(data=Three, aes(x=SumMY60)) +
   geom_histogram(binwidth = bin, alpha = 0.5) +
   facet_wrap(Three$ad_Lactation, ncol = 4) +
   ggtitle("Cumulative milk yield within 60 DFC") +
-  xlab("Cumulative milk yield (L)") +
+  xlab("Cumulative milk yield (kg)") +
   ylab("#cows") +
   theme_classic() +
   theme(axis.text.x = element_text(angle =90))
