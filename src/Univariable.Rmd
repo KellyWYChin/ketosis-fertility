@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # R libraries
 ```{r library, message=FALSE, warning=FALSE}
 library(readxl)
+library(writexl)
 library(tidyr)
 library(tidyverse)
 library(dplyr)
@@ -1053,4 +1054,9 @@ abline(v = 0.08, col = "red")
 describe.by(Three$ad_Lactation, Three$AvgKeto20_atleast10) 
 
 
+```
+
+## Make an excel file for prepared data
+```{r}
+write_xlsx(Three, "../data/raw/Three.xlsx")
 ```

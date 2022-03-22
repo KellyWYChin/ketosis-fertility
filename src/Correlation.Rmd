@@ -25,6 +25,8 @@ library(corrplot)
 
 # Correlation in farm info, ketosis, reproduction, milk yield
 ```{r}
+Three <- read_excel("../data/raw/Three.xlsx")
+
 df.farm <- Three %>%
   select(FarmNo, CowId, CowNo, Lactation, ad_Lactation)
 str(df.farm)
