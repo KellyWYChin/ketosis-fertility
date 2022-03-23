@@ -790,6 +790,10 @@ Three <- df.three #4327 obs of 64v
 #TWoParity <- df.three_twoparity #102 obs of 65v
 rm(list = ls(pattern = "df"))
 #rm(list = ls(pattern = "all_"))
+
+# Add calving year
+Three <- Three %>%
+  mutate(CalvingYear = format(CalvingDate, format = "%Y")) #4327 obs of 66v
 ```
 
 # Distribution - Univariable
