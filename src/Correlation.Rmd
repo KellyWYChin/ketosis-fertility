@@ -228,6 +228,8 @@ plot(Three$DFCFirstHeat, Three$DaysToFirstIns,
      main = "Scatterplot of DFC to first heat and first AI", 
      xlab = "DFC to frist heat", 
      ylab = "DFC to first AI", pch = 19)
+abline(lm(Three$DaysToFirstIns~Three$DFCFirstHeat), col = "red")
+cor.test(Three$DaysToFirstIns, Three$DFCFirstHeat, use = "complete.obs", method = "spearman")
 
 par(mfrow = c(1, 4))
 plot(df.parity1$DFCFirstHeat, df.parity1$DaysToFirstIns, 

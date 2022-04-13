@@ -70,7 +70,7 @@ summary(all_farm_raw)
 all_farm <- subset(all_farm_raw, !is.na(all_farm_raw$CalvingDate)) #46013 obs 31v
 all_farm <- subset(all_farm, !is.na(all_farm$FarmNo)) #45412 obs 31v
 df.cow <- all_farm %>%
-  distinct(FarmNo, CowId) #5069 obs
+  distinct(FarmNo, CowId) #5262 obs
 rm(all_farm_raw)
 nrow(all_farm)
 str(all_farm)
@@ -408,6 +408,9 @@ df.dur1_60 <- all_keto_raw %>%
             MaxDFC60 = max(rDFC),
             MedianSampleTime = median(SamplingTime)) %>% 
   mutate(KetoDur60 = sum(Days_60DFC, na.rm=TRUE)) #159632 obs of 11 variables
+
+df.cow <- df.dur1_60 %>%
+  distinct(FarmNo, CowId) #5,107 cows
 
 df.dur60 <- df.dur1_60 %>%
   distinct(FarmNo, CowId, Lactation, KetoDur60, MedianSampleTime, AvgKeto60_all) #5107 obs of 6 variables
@@ -943,6 +946,7 @@ ggplot(data=Three, aes(x=factor(Last_AI)))+
   ylab("#cows")
 Three$Last_AI <- as.numeric(Three$Last_AI)
 mean(Three$Last_AI, na.rm = T)
+summary(Three$Last_AI)
 
 ```
 
@@ -1050,13 +1054,17 @@ df.parity4 <- Three %>%
 #library(psych)
 #AvgKeto20_atleast10
 summary(Three$AvgKeto20_atleast10)
+summary(Three$MaxKetoDFC20)
+summary(Three$KetoDur20)
+plot(Three$MaxKetoDFC20)
+summary(Three$nHighKeto20)
+
 plot(Three$AvgKeto20_atleast10, Three$ad_Lactation, 
      main = "Scatterplot of AvgKeto20 and lactation groups", 
      ylab = "Lactation groups",
      xlab = "Average milk BHB in 20 DFC (mmol/L)", pch = 19)
 abline(v = 0.08, col = "red")
 describe.by(Three$ad_Lactation, Three$AvgKeto20_atleast10) 
-
 
 ```
 
