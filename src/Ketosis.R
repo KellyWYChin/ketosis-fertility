@@ -424,8 +424,12 @@ df.avg20d$KetoCow <- as.numeric(df.avg20d$KetoCow)
 library(survival)
 df.surv1 <- survfit(Surv(rDFC, KetoCow)~ad_Lactation, data=df.avg20d)
 summary(df.surv1)
-plot(df.surv1, main="Cumulative Survival Function", lty=c(1, 2, 3, 4), xlab="Day after calving (day)", ylab="Probability")
-legend(x=0, y=0.6, legend=c("Primiparous", "2nd Lactation", "3rd Lactation", "4th+ Lactation"), lty=c(1, 2, 3, 4))
+plot(df.surv1, main="Cumulative Survival Function",
+     lty=c(1, 2, 3, 4),
+     xlab="Day after calving (day)", ylab="Probability")
+legend(x=0, y=0.6,
+       legend=c("Primiparous", "2nd Lactation", "3rd Lactation", "4th+ Lactation"),
+       lty=c(1, 2, 3, 4))
 summary(df.surv1)
 
 

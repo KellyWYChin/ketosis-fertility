@@ -283,7 +283,7 @@ CalvingSeason <- function(DATES){
 reproduction <- reproduction %>%
   add_column(CalvingSeason =
                CalvingSeason(reproduction$CalvingDate),
-             .after="CalvingDate") # 5129 obs of 33 variables
+             .after="CalvingDate") # 5129 obs of 34 variables
  # add_column(ECC = ifelse((repro$Ins.Calving <= 80 & repro$PregStatus_1 == "1"), 1, 0))
 ```
 
@@ -465,8 +465,8 @@ df.highketo.60d <- df.dur1_60 %>%
 
 df.ketosis60 <- merge(df.keto3, df.highketo.60d, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5121 obs of 11 variables
 
-# if the cow does not have any value over 0.08 within 60 DFC, the number of High BHB measure = 0
-df.ketosis60$nHighKeto60 <- ifelse((!is.na(df.ketosis60$MaxKeto60) & (df.ketosis60$MaxKeto60 < 0.08)), 0, df.ketosis60$nHighKeto60)
+# if the cow does not have any value over 0.08 within 20 DFC, the number of High BHB measure = 0
+df.ketosis20$nHighKeto20 <- ifelse((!is.na(df.ketosis20$MaxKeto20) & (df.ketosis20$MaxKeto20 < 0.08)), 0, df.ketosis20$nHighKeto20)
 # if the cow does not have any value over 0.08 within 60 DFC, the number of High BHB measure = 0
 df.ketosis60$nHighKeto60 <- ifelse((!is.na(df.ketosis60$MaxKeto60) & (df.ketosis60$MaxKeto60 < 0.08)), 0, df.ketosis60$nHighKeto60)
 
@@ -796,7 +796,7 @@ rm(list = ls(pattern = "df"))
 
 # Add calving year
 Three <- Three %>%
-  mutate(CalvingYear = format(CalvingDate, format = "%Y")) #4327 obs of 66v
+  mutate(CalvingYear = format(CalvingDate, format = "%Y")) #4327 obs of 65v
 ```
 
 # Distribution - Univariable
@@ -837,7 +837,7 @@ quantile(df.cowno$CowNo, c(0.25, 0.5, 0.75))
 ### Number of cows in each farm
 Three <- merge(Three, df.cowno, by = c('FarmNo'), sort = F) 
 Three <- Three %>%
-  relocate(CowNo, .after = FarmNo) #4327 obs 65v
+  relocate(CowNo, .after = FarmNo) #4327 obs 66v
 ```
 
 ## General Info and reproduction parameters
@@ -947,7 +947,6 @@ ggplot(data=Three, aes(x=factor(Last_AI)))+
 Three$Last_AI <- as.numeric(Three$Last_AI)
 mean(Three$Last_AI, na.rm = T)
 summary(Three$Last_AI)
-
 ```
 
 ## Milk parameters

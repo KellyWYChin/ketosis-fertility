@@ -15,8 +15,11 @@ library(readxl)
 library(performance)
 library(survival)
 library(survminer)
+library(tidyr)
+library(gtsummary)
 library(coxme)
 library(lme4)
+library(nlme)
 ```
 
 # Linear Model
@@ -56,48 +59,111 @@ compare_performance(mod1.log, mod2.log, rank = TRUE)
 ```{r}
 glm.mod1 <- glm(DFCFirstHeat~AvgKeto20_atleast10 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason, family = "gaussian", data = Three)
 
-glm1.log <- glm(log.DFCFirstHeat~log.AvgKeto20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason, data = Three.log, family = "gaussian")
+glm.log1 <- glm(log.DFCFirstHeat~log.AvgKeto20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason, data = Three.log, family = "gaussian")
 summary(glm1.log) # the same as linear model
 glm1.log$aic
 
-anova(glm.mod1, glm1.log, test = "Chisq")
+anova(glm.mod1, glm.log1, test = "Chisq")
 ```
 
 # Survival regression
 ```{r}
-df.surv1 <- survfit(Surv(rDFC, KetoCow)~ad_Lactation, data=Three)
-summary(df.surv1)
-plot(df.surv1, main="Cumulative Survival Function", lty=c(1, 2, 3, 4), xlab="Day after calving (day)", ylab="Probability")
-legend(x=0, y=0.6)
+## Example
+#df.surv1 <- survfit(Surv(rDFC, KetoCow)~ad_Lactation, data=Three)
+#summary(df.surv1)
+#plot(df.surv1, main="Cumulative Survival Function", lty=c(1, 2, 3, 4), xlab="Day after calving (day)", ylab="Probability")
+#legend(x=0, y=0.6)
 ```
 ```{r}
 Three.surv <- Three %>%
   mutate(FirstHeat = ifelse(is.na(Three$DFCFirstHeat), 0, 1)) %>%
   mutate(FirstAI = ifelse(is.na(Three$DaysToFirstIns), 0, 1)) %>%
   mutate(KetoStatus20 = ifelse(Three$AvgKeto20_atleast10 >= 0.08, 1, 0))
+summary(Three.surv)
+Three.surv$KetoStatus20 <- as.character(Three.surv$KetoStatus20)
+Three.surv$ad_Lactation <- as.character(Three.surv$ad_Lactation)
 
+surv1.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ ad_Lactation, data=Three.surv)
+print(surv1.heat)
+ggsurvplot(surv1.heat, data=Three.surv,
+           surv.median.line = "hv",
+           xlab = "Days from Calving to First Heat",
+           legend.title = "Parity", 
+           legend.labs = c("1", "2", "3", "4+"),
+           pval = TRUE, 
+           conf.int = TRUE, 
+           risk.table = TRUE,
+           tables.height = 0.2, 
+           tables.theme = theme_cleantable(),
+           ggtheme = theme_bw())
+
+# Change font size, style and color
+#++++++++++++++++++++++++++++++++++++
+if (FALSE) {
+# Change font size, style and color at the same time
+ggsurvplot(surv1.heat, data = Three.surv,  main = "Survival curve",
+   font.main = c(16, "bold", "darkblue"),
+   font.x = c(14, "bold.italic", "red"),
+   font.y = c(14, "bold.italic", "darkred"),
+   font.tickslab = c(12, "plain", "darkgreen"))
+}
+
+surv2.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ KetoStatus20, data=Three.surv)
+summary(surv2.heat)
+print(surv2.heat) #risk table
+ggsurvplot(surv2.heat, data=Three.surv,
+           surv.median.line = "hv",
+           xlab = "Days from Calving to First Heat",
+           legend.title = "Ketosis status within 20 DFC", 
+           legend.labs = c("Avg. BHB < 0.08", "Avg. BHB ≥ 0.08"),
+           pval = TRUE, 
+           conf.int = TRUE, 
+           risk.table = TRUE,
+           tables.height = 0.2, 
+           tables.theme = theme_cleantable(),
+           ggtheme = theme_bw())
+```
+
+# Cox regression model
+```{r}
+coxph(Surv(DFCFirstHeat, FirstHeat) ~ KetoStatus20, data = Three.surv)
+```
+
+# Cox hazard proportional regression
+```{r}
 ## First Heat
-df.cox1.heat <- coxph(Surv(DFCFirstHeat, FirstHeat) ~ AvgKeto20_atleast10 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three.surv)
+df.cox1.heat <- coxph(Surv(DFCFirstHeat, FirstHeat) ~ ad_Lactation + AvgKeto20_atleast10 + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three.surv)
 summary(df.cox1.heat)
 
-ggsurvplot(survfit(df.cox1.heat), data = Three.surv, color= "#2E9FDF",
-           ggtheme = theme_minimal())
+ggsurvplot(survfit(df.cox1.heat), data = Three.surv, color= "#2E9FDF", ggtheme = theme_minimal())
 
+ggsurv <- ggsurvplot(survfit(df.cox1.heat), data = Three.surv, 
+                     fun = "cumhaz", conf.int = TRUE, 
+                     risk.table = TRUE, risk.table.col = "strata", 
+                     ggtheme = theme_bw())
+curv_facet <- ggsurv$plot + facet_grid(AvgKeto20_atleast10 ~ PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo))
+curv_facet
 
-## Frist AI
-df.cox1 <- coxph(Surv(DaysToFirstIns, FirstAI) ~ AvgKeto20_atleast10 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three.surv)
-summary(df.cox1)
+## First AI
+df.cox1.ai <- coxph(Surv(DaysToFirstIns, FirstAI) ~ AvgKeto20_atleast10 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three.surv)
+summary(df.cox1.ai)
 
-ggsurvplot(survfit(df.cox1), data = Three.surv, color= "#2E9FDF",
-           ggtheme = theme_minimal())
-
+ggsurvplot(survfit(df.cox1.ai), data = Three.surv, color= "#2E9FDF", ggtheme = theme_minimal())
 ```
 
 # Poisson regression
 ```{r}
 p.mod1 <- glm(Last_AI ~ AvgKeto20_atleast10 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
-
 summary(p.mod1)
 
 plot(p.mod1)
+
+p.mod2 <- glm(Last_AI ~ KetoDur20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
+summary(p.mod2)
+plot(p.mod2)
+
+p.mod2_no_Lact <- glm(Last_AI ~ KetoDur20 + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three) 
+summary(p.mod2_no_Lact)
+plot(p.mod2_no_Lact)
+
 ```
