@@ -27,9 +27,19 @@ library(nlme)
 Three <- read_excel("../data/raw/Three.xlsx")
 Three$CalvingYear <- as.factor(Three$CalvingYear)
 
-mod1 <- lm(Three$DFCFirstHeat~Three$AvgKeto20_atleast10 + Three$ad_Lactation + Three$PeakDFC + Three$AvgMY60 + Three$CalvingSeason)
+mod1 <- lm(Three$DFCFirstHeat~Three$AvgKeto20_atleast10 + Three$MaxKetoDFC20 + factor(Three$ad_Lactation) + Three$PeakDFC + Three$AvgMY20 + Three$CalvingSeason + factor(Three$FarmNo))
 summary(mod1)
 plot(mod1)
+
+mod1_AvgMY <- lm(Three$DFCFirstHeat~Three$AvgKeto20_atleast10 + factor(Three$ad_Lactation) + Three$PeakDFC +Three$CalvingSeason + factor(Three$FarmNo))
+summary(mod1_AvgMY)
+
+anova(mod1, mod1_AvgMY)
+
+mod1.1 <- lm(Three$DFCFirstHeat~Three$AvgKeto20_atleast10 + Three$Lactation + Three$PeakDFC + Three$AvgMY20 + Three$CalvingSeason + factor(Three$FarmNo))
+summary(mod1.1)
+
+anova(mod1, mod1.1)
 
 
 # Log transformation
@@ -78,10 +88,40 @@ anova(glm.mod1, glm.log1, test = "Chisq")
 Three.surv <- Three %>%
   mutate(FirstHeat = ifelse(is.na(Three$DFCFirstHeat), 0, 1)) %>%
   mutate(FirstAI = ifelse(is.na(Three$DaysToFirstIns), 0, 1)) %>%
-  mutate(KetoStatus20 = ifelse(Three$AvgKeto20_atleast10 >= 0.08, 1, 0))
+  mutate(KetoStatus20 = ifelse(Three$AvgKeto20_atleast10 >= 0.08, 1, 0)) %>%
+  mutate(KetoQua = ifelse(Three$AvgKeto20_atleast10 >= 0.076, 4, 
+                          ifelse(Three$AvgKeto20_atleast10 >= 0.061 & Three$AvgKeto20_atleast10 < 0.076, 3, 
+                                 ifelse(Three$AvgKeto20_atleast10 >= 0.055 & Three$AvgKeto20_atleast10 < 0.061, 2, 
+                                        ifelse(Three$AvgKeto20_atleast10 < 0.055, 1, NA))))) %>%
+  mutate(KetoMaxDay = ifelse(Three$MaxKetoDFC20 >= 17, 4, 
+                             ifelse(Three$MaxKetoDFC20 >= 12 & Three$MaxKetoDFC20 < 17, 3,
+                                    ifelse(Three$MaxKetoDFC20 >= 8 & Three$MaxKetoDFC20 < 12, 2, 
+                                           ifelse(Three$MaxKetoDFC20 <8, 1, NA))))) %>%
+  mutate(KetoMaxDay2 = ifelse(Three$MaxKetoDFC20 >= 12, 1, 0))
+
 summary(Three.surv)
 Three.surv$KetoStatus20 <- as.character(Three.surv$KetoStatus20)
 Three.surv$ad_Lactation <- as.character(Three.surv$ad_Lactation)
+Three.surv$KetoQua <- as.character(Three.surv$KetoQua)
+```
+
+# Survival curves (DFCFirstHeat)
+```{r}
+surv.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ 1, data = Three.surv)
+plot(surv.heat, main = "Cumulatvie survival time from calving to first heat",
+     ylab = "Cumulative survival probability",
+     xlab = "Time (days from calving to first heat)")
+print(surv.heat)
+ggsurvplot(surv.heat, data = Three.surv,
+           surv.median.line = "hv",
+           xlab = "Time (days from calving to first heat",
+           legend.title = "Cumulative survival time to first heat",
+           pval = TRUE,
+           conf.int = TRUE,
+           risk.table = TRUE,
+           tables.height = 0.2,
+           tables.theme = theme_cleantable(),
+           ggtheme = theme_bw())
 
 surv1.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ ad_Lactation, data=Three.surv)
 print(surv1.heat)
@@ -93,7 +133,7 @@ ggsurvplot(surv1.heat, data=Three.surv,
            pval = TRUE, 
            conf.int = TRUE, 
            risk.table = TRUE,
-           tables.height = 0.2, 
+           tables.height = 0.28, 
            tables.theme = theme_cleantable(),
            ggtheme = theme_bw())
 
@@ -122,6 +162,49 @@ ggsurvplot(surv2.heat, data=Three.surv,
            tables.height = 0.2, 
            tables.theme = theme_cleantable(),
            ggtheme = theme_bw())
+
+surv3.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ KetoQua, data=Three.surv)
+print(surv3.heat)
+ggsurvplot(surv3.heat, data=Three.surv,
+           surv.median.line = "hv",
+           xlab = "Days from Calving to First Heat",
+           legend.title = "Avg. BHB within 20 DFC (mmol/L)", 
+           legend.labs = c("<0.055", "0.055-0.061", "0.061-0.076", "≥0.076"),
+           pval = TRUE, 
+           conf.int = TRUE, 
+           risk.table = TRUE,
+           tables.height = 0.28, 
+           tables.theme = theme_cleantable(),
+           ggtheme = theme_bw())
+
+surv4.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ KetoMaxDay, data=Three.surv)
+print(surv4.heat)
+ggsurvplot(surv4.heat, data=Three.surv,
+           surv.median.line = "hv",
+           xlab = "Days from Calving to First Heat",
+           legend.title = "Day when BHB reached maximum within 20 DFC (DFC)", 
+           legend.labs = c("< 8 days", "8-12", "12-17", "17-20"),
+           pval = TRUE, 
+           conf.int = TRUE, 
+           risk.table = TRUE,
+           tables.height = 0.28, 
+           tables.theme = theme_cleantable(),
+           ggtheme = theme_bw())
+
+surv5.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ KetoMaxDay2, data=Three.surv)
+print(surv5.heat)
+ggsurvplot(surv5.heat, data=Three.surv,
+           surv.median.line = "hv",
+           xlab = "Days from Calving to First Heat",
+           legend.title = "Day when BHB reached maximum within 20 DFC (DFC)", 
+           legend.labs = c("<12", "12-20"),
+           pval = TRUE, 
+           conf.int = TRUE, 
+           risk.table = TRUE,
+           tables.height = 0.2, 
+           tables.theme = theme_cleantable(),
+           ggtheme = theme_bw())
+
 ```
 
 # Cox regression model
@@ -149,21 +232,4 @@ df.cox1.ai <- coxph(Surv(DaysToFirstIns, FirstAI) ~ AvgKeto20_atleast10 + factor
 summary(df.cox1.ai)
 
 ggsurvplot(survfit(df.cox1.ai), data = Three.surv, color= "#2E9FDF", ggtheme = theme_minimal())
-```
-
-# Poisson regression
-```{r}
-p.mod1 <- glm(Last_AI ~ AvgKeto20_atleast10 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
-summary(p.mod1)
-
-plot(p.mod1)
-
-p.mod2 <- glm(Last_AI ~ KetoDur20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
-summary(p.mod2)
-plot(p.mod2)
-
-p.mod2_no_Lact <- glm(Last_AI ~ KetoDur20 + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three) 
-summary(p.mod2_no_Lact)
-plot(p.mod2_no_Lact)
-
 ```

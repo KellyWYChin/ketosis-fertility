@@ -1,0 +1,27 @@
+---
+title: "Poisson regression"
+author: "Kelly Chin"
+date: "4/17/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Poisson regression
+```{r}
+p.mod1 <- glm(Last_AI ~ AvgKeto20_atleast10 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
+summary(p.mod1)
+
+plot(p.mod1)
+
+p.mod2 <- glm(Last_AI ~ KetoDur20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
+summary(p.mod2)
+plot(p.mod2)
+
+p.mod2_no_Lact <- glm(Last_AI ~ KetoDur20 + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three) 
+summary(p.mod2_no_Lact)
+plot(p.mod2_no_Lact)
+
+```
