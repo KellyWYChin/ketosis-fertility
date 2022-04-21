@@ -9,6 +9,24 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# R libraries
+```{r}
+library(readxl)
+library(performance)
+library(survival)
+library(survminer)
+library(tidyr)
+library(gtsummary)
+library(coxme)
+library(lme4)
+library(nlme)
+```
+
+```{r}
+Three <- read_excel("../data/raw/Three.xlsx")
+Three$CalvingYear <- as.factor(ifelse(Three$CalvingYear == 2018, 1, 2))
+```
+
 # Poisson regression
 ```{r}
 p.mod1 <- glm(Last_AI ~ AvgKeto20_atleast10 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)

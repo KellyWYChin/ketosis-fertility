@@ -22,11 +22,14 @@ library(lme4)
 library(nlme)
 ```
 
-# Linear Model
+# Data
 ```{r}
 Three <- read_excel("../data/raw/Three.xlsx")
-Three$CalvingYear <- as.factor(Three$CalvingYear)
+Three$CalvingYear <- as.factor(ifelse(Three$CalvingYear == 2018, 1, 2))
+```
 
+# Linear Model
+```{r}
 mod1 <- lm(Three$DFCFirstHeat~Three$AvgKeto20_atleast10 + Three$MaxKetoDFC20 + factor(Three$ad_Lactation) + Three$PeakDFC + Three$AvgMY20 + Three$CalvingSeason + factor(Three$FarmNo))
 summary(mod1)
 plot(mod1)
@@ -100,9 +103,11 @@ Three.surv <- Three %>%
   mutate(KetoMaxDay2 = ifelse(Three$MaxKetoDFC20 >= 12, 1, 0))
 
 summary(Three.surv)
-Three.surv$KetoStatus20 <- as.character(Three.surv$KetoStatus20)
-Three.surv$ad_Lactation <- as.character(Three.surv$ad_Lactation)
-Three.surv$KetoQua <- as.character(Three.surv$KetoQua)
+Three.surv$FarmNo <- as.factor(Three.surv$FarmNo)
+Three.surv$CalvingSeason <- as.factor(Three.surv$CalvingSeason)
+Three.surv$KetoStatus20 <- as.factor(Three.surv$KetoStatus20)
+Three.surv$ad_Lactation <- as.factor(Three.surv$ad_Lactation)
+Three.surv$KetoQua <- as.factor(Three.surv$KetoQua)
 ```
 
 # Survival curves (DFCFirstHeat)
@@ -205,6 +210,33 @@ ggsurvplot(surv5.heat, data=Three.surv,
            tables.theme = theme_cleantable(),
            ggtheme = theme_bw())
 
+surv6.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ CalvingYear, data = Three.surv)
+print(surv6.heat)
+ggsurvplot(surv6.heat, data=Three.surv,
+           surv.median.line = "hv",
+           xlab = "Days from Calving to First Heat",
+           legend.title = "Calving Year", 
+           legend.labs = c("2018", "2019"),
+           pval = TRUE, 
+           conf.int = TRUE, 
+           risk.table = TRUE,
+           tables.height = 0.2, 
+           tables.theme = theme_cleantable(),
+           ggtheme = theme_bw())
+
+surv7.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ CalvingSeason, data = Three.surv)
+print(surv7.heat)
+ggsurvplot(surv7.heat, data=Three.surv,
+           surv.median.line = "hv",
+           xlab = "Days from Calving to First Heat",
+           legend.title = "Calving Seasons", 
+           legend.labs = c("Fall", "Spring", "Summer", "Winter"),
+           pval = TRUE, 
+           conf.int = TRUE, 
+           risk.table = TRUE,
+           tables.height = 0.28, 
+           tables.theme = theme_cleantable(),
+           ggtheme = theme_bw())
 ```
 
 # Cox regression model
@@ -212,10 +244,46 @@ ggsurvplot(surv5.heat, data=Three.surv,
 coxph(Surv(DFCFirstHeat, FirstHeat) ~ KetoStatus20, data = Three.surv)
 ```
 
-# Cox hazard proportional regression
+# Cox hazard proportional regression - First Heat
 ```{r}
+# Univariate Cox regression
+cox.ketostatus <- coxph(Surv(DFCFirstHeat, FirstHeat) ~ KetoStatus20, data = Three.surv)
+cox.ketostatus
+summary(cox.ketostatus)
+
+# Multiple covariates at once for univariate coxph
+covariates <- c("AvgKeto20_atleast10", "MaxKetoDFC20", #"nHighKeto20", "KetoDur20",
+                #"KetoStatus20", "KetoQua", "KetoMaxDay", "KetoMaxDay2", 
+                #"PeakDFC", 
+                "AvgMY20", "SumMY20",
+                "ad_Lactation", "CalvingYear", "CalvingSeason", 
+                "FarmNo", "Lactation")
+univ_formulas <- sapply(covariates,
+                        function(x) as.formula(paste('Surv(DFCFirstHeat, FirstHeat) ~', x)))
+univ_models <- lapply(univ_formulas, function(x)(coxph(x, data = Three.surv)))
+
+## Extract data
+univ_results <- lapply(univ_models, 
+                       function(x){
+                         x <- summary(x)
+                         p.value <- signif(x$wald["pvalue"], digits = 2)
+                         wald.test <- signif(x$wald["test"], digits = 2)
+                         beta <- signif(x$coef[1], digits = 2); #coefficient beta
+                         HR <- signif(x$coef[2], digits = 2);
+                         HR.confint.lower <- signif(x$conf.int[,"lower .95"], 2)
+                         HR.confint.upper <- signif(x$conf.int[,"upper .95"], 2)
+                         HR <- paste0(HR, " (",
+                                      HR.confint.lower, "-", HR.confint.upper, ")")
+                         res <- c(beta, HR, wald.test, p.value)
+                         names(res) <- c("beta", "HR (95% CI for HR)", 
+                                         "wald.test", "p.value")
+                         return(res)
+                         #return(exp(cbind(coef(x), confint(x))))
+                       })
+res <- t(as.data.frame(univ_results, check.names = FALSE))
+
 ## First Heat
-df.cox1.heat <- coxph(Surv(DFCFirstHeat, FirstHeat) ~ ad_Lactation + AvgKeto20_atleast10 + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three.surv)
+df.cox1.heat <- coxph(Surv(DFCFirstHeat, FirstHeat) ~ ad_Lactation + AvgKeto20_atleast10 + MaxKetoDFC20 + PeakDFC + AvgMY20 + CalvingSeason + CalvingYear + factor(FarmNo), data = Three.surv)
 summary(df.cox1.heat)
 
 ggsurvplot(survfit(df.cox1.heat), data = Three.surv, color= "#2E9FDF", ggtheme = theme_minimal())
@@ -226,7 +294,10 @@ ggsurv <- ggsurvplot(survfit(df.cox1.heat), data = Three.surv,
                      ggtheme = theme_bw())
 curv_facet <- ggsurv$plot + facet_grid(AvgKeto20_atleast10 ~ PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo))
 curv_facet
+```
 
+# Cox hazard proportional regression - First AI
+```{r}
 ## First AI
 df.cox1.ai <- coxph(Surv(DaysToFirstIns, FirstAI) ~ AvgKeto20_atleast10 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three.surv)
 summary(df.cox1.ai)
