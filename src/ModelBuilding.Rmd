@@ -44,28 +44,58 @@ summary(mod1.1)
 
 anova(mod1, mod1.1)
 
+# Times AvgKeto20_atleast10 to 100 for easier quantify the one unit change of ketosis value and the influence on fertiliy
+Three <- Three %>%
+  mutate(AvgKeto20_100 = 100*AvgKeto20_atleast10)
 
-# Log transformation
+mod1.100 <- lm(DFCFirstHeat~AvgKeto20_100 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason + factor(FarmNo), data = Three)
+summary(mod1.100)
+    
+```
+
+# Log transformation (1)
+```{r}
 Three.log <- Three %>%
   mutate(log.DFC_CLA = log(DFC_CLA),
          log.DFCFirstHeat = log(DFCFirstHeat), 
          log.DaysToFirstIns = log(DaysToFirstIns), 
          log.AvgKeto20 = log(AvgKeto20_atleast10), 
          log.AvgKeto60 = log(AvgKeto60_atleast10)) #4327 obs of 71v
-         
 
-mod1.log <- lm(Three.log$log.DFCFirstHeat~Three.log$AvgKeto20_atleast20 + Three.log$ad_Lactation + Three.log$PeakDFC + Three.log$AvgMY60 + Three.log$CalvingSeason)
+# log transform the outcome variable
+mod1.log <- lm(log.DFCFirstHeat~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + FarmNo, data = Three.log)
 summary(mod1.log)
-plot(mod1.log)
+#plot(mod1.log)
 
-mod2.log <- lm(Three.log$log.DFCFirstHeat~Three.log$log.AvgKeto20 + Three.log$ad_Lactation + Three.log$PeakDFC + Three.log$AvgMY60 + Three.log$CalvingSeason)
-mod2.log2 <- lm(log.DFCFirstHeat~log.AvgKeto20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason, data = Three.log)
+# FarmNo and interaction with ketosis
+mod1.log.int <- lm(log.DFCFirstHeat~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + FarmNo:AvgKeto20_atleast10, data = Three.log)
+summary(mod1.log.int)
+#plot(mod1.log.int)
+
+anova(mod1.log, mod1.log.int)
+```
+
+# Log transformation (2)
+```{r}
+# log transform both outcome and explantory variables
+mod2.log <- lm(log.DFCFirstHeat~log.AvgKeto20 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + FarmNo, data = Three.log)
 summary(mod2.log)
-summary(mod2.log2)
 plot(mod2.log)
 
-anova(mod1.log, mod2.log)
-compare_performance(mod1.log, mod2.log, rank = TRUE)
+# FarmNo and interaction with ketosis
+mod2.log.int <- lm(log.DFCFirstHeat~log.AvgKeto20 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo):log.AvgKeto20, data = Three.log)
+summary(mod2.log.int)
+plot(mod2.log.int)
+
+compare_performance(mod2.log, mod2.log.int, rank = TRUE)
+
+
+mod2.log1 <- lm(log.DFCFirstHeat~log.AvgKeto20 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three.log)
+mod2.log2 <- lm(log.DFCFirstHeat~log.AvgKeto20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three.log)
+summary(mod2.log1)
+summary(mod2.log2)
+
+compare_performance(mod2.log1, mod2.log2, rank = TRUE)
 ```
 
 # Generalized Linear Model
@@ -282,6 +312,9 @@ univ_results <- lapply(univ_models,
                        })
 res <- t(as.data.frame(univ_results, check.names = FALSE))
 
+```
+
+```{r}
 ## First Heat
 df.cox1.heat <- coxph(Surv(DFCFirstHeat, FirstHeat) ~ ad_Lactation + AvgKeto20_atleast10 + MaxKetoDFC20 + PeakDFC + AvgMY20 + CalvingSeason + CalvingYear + factor(FarmNo), data = Three.surv)
 summary(df.cox1.heat)

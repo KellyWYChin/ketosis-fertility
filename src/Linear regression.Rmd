@@ -1,0 +1,34 @@
+---
+title: "Linear Regression"
+author: "Kelly Chin"
+date: "4/23/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R libraries
+```{r}
+library(readxl)
+library(performance)
+library(survival)
+library(survminer)
+library(tidyr)
+library(gtsummary)
+library(coxme)
+library(lme4)
+library(nlme)
+```
+
+```{r}
+Three <- read_excel("../data/raw/Three.xlsx")
+Three$CalvingYear <- as.factor(ifelse(Three$CalvingYear == 2018, 1, 2))
+```
+
+# ANCOVA and interactions
+```{r}
+mod1 <- lm()
+
+```
