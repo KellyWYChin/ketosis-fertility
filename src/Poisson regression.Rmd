@@ -68,6 +68,7 @@ mod2.lme <- lme(Last_AI ~ AvgKeto60_atleast10  + factor(ad_Lactation) + PeakDFC 
                 method = "REML")
 summary(mod2.lme)
 ```
+
 ```{r}
 mod1.poisson <- glmer(Last_AI ~ AvgKeto20_atleast10 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason + (1 | FarmNo), 
                       data = Three, family = poisson(link = "log"))

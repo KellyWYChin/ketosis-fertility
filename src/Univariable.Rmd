@@ -1069,5 +1069,8 @@ describe.by(Three$ad_Lactation, Three$AvgKeto20_atleast10)
 
 ## Make an excel file for prepared data
 ```{r}
+# Times AvgKeto20_atleast10 to 100 for easier quantify the one unit change of ketosis value and the influence on fertiliy
+Three <- Three %>%
+  mutate(AvgKeto20_100 = 100*AvgKeto20_atleast10)
 write_xlsx(Three, "../data/raw/Three.xlsx")
 ```

@@ -26,6 +26,7 @@ library(nlme)
 ```{r}
 Three <- read_excel("../data/raw/Three.xlsx")
 #Three$CalvingYear <- as.factor(ifelse(Three$CalvingYear == 2018, 1, 2))
+
 ```
 
 # Linear Model
