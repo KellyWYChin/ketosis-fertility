@@ -292,6 +292,7 @@ univ_formulas <- sapply(covariates,
                         function(x) as.formula(paste('Surv(DFCFirstHeat, FirstHeat) ~', x)))
 univ_models <- lapply(univ_formulas, function(x)(coxph(x, data = Three.surv)))
 
+summary(Three.surv)
 ## Extract data
 univ_results <- lapply(univ_models, 
                        function(x){
