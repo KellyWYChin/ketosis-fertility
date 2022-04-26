@@ -12,10 +12,13 @@ knitr::opts_chunk$set(echo = TRUE)
 # R libraries
 ```{r}
 library(readxl)
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
 library(performance)
 library(survival)
 library(survminer)
-library(tidyr)
 library(gtsummary)
 library(coxme)
 library(lme4)
@@ -24,15 +27,26 @@ library(nlme)
 
 ```{r}
 Three <- read_excel("../data/raw/Three.xlsx")
-Three$CalvingYear <- as.factor(ifelse(Three$CalvingYear == 2018, 1, 2))
+#Three$CalvingYear <- as.factor(ifelse(Three$CalvingYear == 2018, 1, 2))
+summary(Three)
 
+summary(Three$Last_AI)
+sd(Three$Last_AI, na.rm = T)
+var(Three$Last_AI, na.rm = T)
+
+# Categorize numbers of AI
+Three <- Three %>%
+  mutate(NumAI = ifelse(Three$Last_AI > 4, 4, 
+                        ifelse(Three$Last_AI <= 4 & Three$Last_AI > 2, 3,
+                               ifelse(Three$Last_AI <= 2 & Three$Last_AI > 1, 2, 
+                                      ifelse(Three$Last_AI == 1, 1, NA)))))
 ```
 
 # Research Question: what is the assocation of numbers of AI and ketosis?
 
 # AvgKeto20_100
 ```{r}
-p.mod1 <- glm(Last_AI ~ AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
+p.mod1 <- glm(Last_AI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
 summary(p.mod1)
 
 plot(p.mod1)
@@ -40,16 +54,33 @@ plot(p.mod1)
 
 ## Random effect
 ```{r}
-mod1.lme <- lme(DFCFirstHeat ~ AvgKeto20_atleast10 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason, 
+mod1.lme <- lme(Last_AI ~ AvgKeto20_atleast10 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason, 
                 random = ~ 1|FarmNo, 
                 data = Three, 
                 na.action = na.exclude,
                 method = "REML")
 summary(mod1.lme)
+
+mod2.lme <- lme(Last_AI ~ AvgKeto60_atleast10  + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason, 
+                random = ~ 1|FarmNo, 
+                data = Three, 
+                na.action = na.exclude,
+                method = "REML")
+summary(mod2.lme)
 ```
 ```{r}
-mod1.poisson <- glmer(DFCFirstHeat ~ AvgKeto20_atleast10 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason + (1 | FarmNo), 
+mod1.poisson <- glmer(Last_AI ~ AvgKeto20_atleast10 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason + (1 | FarmNo), 
                       data = Three, family = poisson(link = "log"))
+```
+
+```{r}
+mod2.poisson <- glmer(Last_AI~ cut(AvgKeto20_atleast10, c(0, 0.04, 0.07, 0.1, 0.5)) + (1 | FarmNo), 
+                      data = Three, family = poisson(link = "log"))
+summary(mod2.poisson)
+summary(Three$DFCFirstHeat)
+boxplot(Three$Last_AI ~ Three$FarmNo)
+plot(Three$AvgKeto20_atleast10, Three$Last_AI)
+boxplot(Three$AvgKeto20_atleast10 ~ Three$FarmNo)
 ```
 
 # KetoDur20
