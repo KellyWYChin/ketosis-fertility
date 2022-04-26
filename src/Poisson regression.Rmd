@@ -75,13 +75,22 @@ mod1.poisson <- glmer(Last_AI ~ AvgKeto20_atleast10 + MaxKetoDFC20 + factor(ad_L
 ```
 
 ```{r}
-mod2.poisson <- glmer(Last_AI~ cut(AvgKeto20_atleast10, c(0, 0.04, 0.07, 0.1, 0.5)) + (1 | FarmNo), 
-                      data = Three, family = poisson(link = "log"))
-summary(mod2.poisson)
-summary(Three$DFCFirstHeat)
+rm(list=ls(pattern="cox."))
 boxplot(Three$Last_AI ~ Three$FarmNo)
 plot(Three$AvgKeto20_atleast10, Three$Last_AI)
 boxplot(Three$AvgKeto20_atleast10 ~ Three$FarmNo)
+
+poi.avgketo20 <- glmer(Last_AI~ AvgKeto20_atleast10 + (1 | FarmNo), 
+                      data = Three, family = poisson(link = "log"))
+summary(poi.avgketo20)
+poi.avgketo20.cate <- glmer(Last_AI~ cut(AvgKeto20_atleast10, c(0, 0.04, 0.07, 0.1, 0.5)) + (1 | FarmNo), 
+                      data = Three, family = poisson(link = "log"))
+summary(poi.avgketo20.cate)
+
+poi.avgketo20.100 <- glmer(Last_AI~ AvgKeto20_100 + (1 | FarmNo), 
+                      data = Three, family = poisson(link = "log"))
+summary(poi.avgketo20.100)
+
 ```
 
 # KetoDur20
