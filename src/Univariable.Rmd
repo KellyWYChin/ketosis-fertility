@@ -137,6 +137,8 @@ df.insN$Last_InsDate <- ifelse(is.na(df.insN$Last_AI), NA,
                             as.character(df.insN$Last_InsDate))
 df.insN$Last_AbortionDate <- as.Date(df.insN$Last_AbortionDate)
 which.max(df.insN$Gap)
+df.insN$Last_AI <- ifelse(is.na(df.insN$Last_AI), 0, df.insN$Last_AI)
+summary(df.insN$Last_AI)
 
 # Merge 1st and last AI
 df.ins.all <- data.frame()
