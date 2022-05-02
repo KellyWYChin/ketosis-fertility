@@ -800,8 +800,6 @@ rm(list = ls(pattern = "df"))
 Three <- Three %>%
   mutate(CalvingYear = format(CalvingDate, format = "%Y")) #4327 obs of 65v
 ```
-
-# Distribution - Univariable
 ```{r, warning=FALSE}
 #################
 #  Descriptive  #
@@ -952,6 +950,7 @@ summary(Three$Last_AI)
 ```
 
 ## Milk parameters
+# Distribution - Univariable
 ```{r}
 ## PeakDFC
 summary(Three$PeakDFC)
