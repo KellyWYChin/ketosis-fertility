@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # R libraries
 ```{r}
 library(readxl)
+library(dplyr)
 library(tidyr)
 library(tidyverse)
 library(dplyr)
@@ -52,7 +53,7 @@ summary(p.mod1)
 plot(p.mod1)
 ```
 
-## Random effect
+## lme with random effect
 ```{r}
 mod1.lme <- lme(Last_AI ~ AvgKeto20_atleast10 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason, 
                 random = ~ 1|FarmNo, 
@@ -69,20 +70,83 @@ mod2.lme <- lme(Last_AI ~ AvgKeto60_atleast10  + factor(ad_Lactation) + PeakDFC 
 summary(mod2.lme)
 ```
 
-```{r}
-mod1.poisson <- glmer(Last_AI ~ AvgKeto20_atleast10 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason + (1 | FarmNo), 
-                      data = Three, family = poisson(link = "log"))
-```
-
+# glm
 ```{r}
 rm(list=ls(pattern="cox."))
 boxplot(Three$Last_AI ~ Three$FarmNo)
 plot(Three$AvgKeto20_atleast10, Three$Last_AI)
 boxplot(Three$AvgKeto20_atleast10 ~ Three$FarmNo)
 
+poi.mod <- glm(Last_AI ~ 1, data = Three, family = poisson(link = "log"))
+summary(poi.mod)
+
+poi.mod1 <- glm(Last_AI ~ AvgKeto20_100, )
+```
+
+## Offset - farmsize
+```{r}
+mod1 <- glm(Last_AI ~ AvgKeto20_100, data = Three, family = poisson(link = "log"))
+summary(mod1)
+
+mod2 <- glm(Last_AI ~ AvgKeto20_100 + offset(log(CowNo)), data = Three, family = poisson(link = "log"))
+summary(mod2)
+
+mod3 <- glmer(Last_AI ~ AvgKeto20_100 + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(mod3)
+
+mod4 <- glmer(Last_AI ~ AvgKeto20_100 + offset(log(CowNo)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(mod4)
+
+boxplot(Three$AvgKeto20_100 ~ Three$Last_AI)
+boxplot(Three$Last_AI ~ Three$FarmNo)
+boxplot(Three$AvgKeto20_100 ~ Three$FarmNo)
+
+ggplot(data = Three, aes(x = Last_AI, y = AvgKeto20_100)) +
+  geom_bar(stat = "identity")
+```
+
+## Offset - time from calving to last AI
+```{r}
+Three.offset <- Three %>%
+  mutate(Calving.lastAI = difftime(Last_InsDate, CalvingDate, units = "days"))
+Three.offset$Calving.lastAI <- as.numeric(round(Three.offset$Calving.lastAI, 0))
+summary(Three.offset$Calving.lastAI)
+
+df.check <- Three.offset %>%
+  select(FarmNo, CowId, CalvingDate, Last_InsDate, Last_AI, Calving.lastAI, DaysBtwFirstAndLastIns)
+
+mod5 <- glm(Last_AI ~ AvgKeto20_100 + offset(log(Calving.lastAI)), data = Three.offset, family = poisson(link = "log"))
+summary(mod5)
+
+mod6 <- glmer(Last_AI ~ AvgKeto20_100 + offset(log(Calving.lastAI)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+summary(mod6)
+
+anova(mod5, mod6)
+drop1(mod6)
+```
+
+## glmer
+```{r}
+mod1.poisson <- glmer(Last_AI ~ AvgKeto20_atleast10 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason + (1 | FarmNo), 
+                      data = Three, family = poisson(link = "log"))
+summary(mod1.poisson)
+
+mod0.poisson <- glmer(Last_AI ~ 1 + (1 | FarmNo), data = Three, family = poisson(link = "log"))
+summary(mod2.poisson)
+```
+
+## glmer 
+```{r}
 poi.avgketo20 <- glmer(Last_AI~ AvgKeto20_atleast10 + (1 | FarmNo), 
                       data = Three, family = poisson(link = "log"))
 summary(poi.avgketo20)
+anova(poi.mod, poi.avgketo20, test = "Chisq")
+drop1(poi.avgketo20)
+
+poi.avgketo20.1 <- glmer(Last_AI~ AvgKeto20_atleast10 + (FarmNo), 
+                      data = Three, family = poisson(link = "log"))
+summary(poi.avgketo20.1)
+
 poi.avgketo20.cate <- glmer(Last_AI~ cut(AvgKeto20_atleast10, c(0, 0.04, 0.07, 0.1, 0.5)) + (1 | FarmNo), 
                       data = Three, family = poisson(link = "log"))
 summary(poi.avgketo20.cate)
