@@ -90,16 +90,24 @@ summary(poi.mod1)
 mod1 <- glm(Last_AI ~ AvgKeto20_100, data = Three, family = poisson(link = "log"))
 summary(mod1)
 
-mod2 <- glm(Last_AI ~ AvgKeto20_100 + offset(log(CowNo)), data = Three, family = poisson(link = "log"))
-summary(mod2)
+#mod2 <- glm(Last_AI ~ AvgKeto20_100 + offset(log(CowNo)), data = Three, family = poisson(link = "log"))
+#(mod2)
+## This model doesn't mean anything because the outcome is the 'mean numbers of insemination of an individual cow' and should not be divided to farm size -> shouldn't use farm size in offset! 
 
 mod3 <- glmer(Last_AI ~ AvgKeto20_100 + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(mod3)
 res3 <- simulateResiduals(mod3)
 plot(res3)
 
-mod4 <- glmer(Last_AI ~ AvgKeto20_100 + offset(log(CowNo)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+#mod4 <- glmer(Last_AI ~ AvgKeto20_100 + offset(log(CowNo)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+## This model doesn't mean anything because the outcome is the 'mean numbers of insemination of an individual cow' and should not be divided to farm size -> shouldn't use farm size in offset! 
+
+mod4 <- glmer(Last_AI ~ AvgKeto20_100 + cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+# This model estimates the mean numbers of AI within the estimated observation time (per month), with fix average ketosis and fix farm effect (estimate the effect of farm size)
+
 summary(mod4)
+res4 <- simulateResiduals(mod4)
+plot(res4)
 
 boxplot(Three$AvgKeto20_100 ~ Three$Last_AI)
 boxplot(Three$Last_AI ~ Three$FarmNo)
@@ -209,19 +217,23 @@ summary(p.mod_no_Lact)
 mod1 <- glm(Last_AI ~ KetoDur20, data = Three, family = poisson(link = "log"))
 summary(mod1)
 
-mod2 <- glm(Last_AI ~ KetoDur20 + offset(log(CowNo)), data = Three, family = poisson(link = "log"))
-summary(mod2)
+#mod2 <- glm(Last_AI ~ KetoDur20 + offset(log(CowNo)), data = Three, family = poisson(link = "log"))
+#summary(mod2)
+## This model doesn't mean anything because the outcome is the 'mean numbers of insemination of an individual cow' and should not be divided to farm size
 
 mod3 <- glmer(Last_AI ~ KetoDur20 + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(mod3)
 
-mod4 <- glmer(Last_AI ~ KetoDur20 + offset(log(CowNo)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
-summary(mod4)
+#mod4 <- glmer(Last_AI ~ KetoDur20 + offset(log(CowNo)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+## This model doesn't mean anything because the outcome is the 'mean numbers of insemination of an individual cow' and should not be divided to farm size -> shouldn't use farm size in offset! 
 
 anova(mod1, mod2, test = "Chisq")
 anova(mod1, mod3, test = "Chisq")
 plot(mod3)
 anova(mod3, mod4, test="Chisq")
+
+res3 <- simulateResiduals(mod3)
+plot(res3)
 ```
 
 ## Offset - time from calving to last AI
@@ -234,4 +246,20 @@ summary(mod6)
 
 anova(mod5, mod6)
 drop1(mod6)
+```
+
+# Extra AI
+```{r}
+extra <- Three.offset %>%
+  filter(Last_AI >= 1)
+mean(extra$Last_AI)
+var(extra$Last_AI)
+table(extra$Last_AI)
+
+mod.extra <- glmer(Last_AI ~ AvgKeto20_100 + cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = extra, family = poisson(link = "log"))
+summary(mod.extra)
+
+mod.extra2 <- glmer(Last_AI ~ AvgKeto20_100)
+
+
 ```
