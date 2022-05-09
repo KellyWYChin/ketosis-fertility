@@ -22,9 +22,15 @@ library(survival)
 library(survminer)
 library(gtsummary)
 library(coxme)
-library(lme4)
+#library(lme4)
+#detach("package:lme4", unload=TRUE)
 library(nlme)
 library(DHARMa)
+library(MASS)
+library(arm)
+library(foreign)
+#install.packages("glmmTMB")
+library(glmmTMB)
 ```
 
 ```{r}
@@ -37,11 +43,20 @@ sd(Three$Last_AI, na.rm = T)
 var(Three$Last_AI, na.rm = T)
 
 # Categorize numbers of AI
-Three <- Three %>%
-  mutate(NumAI = ifelse(Three$Last_AI > 4, 4, 
-                        ifelse(Three$Last_AI <= 4 & Three$Last_AI > 2, 3,
-                               ifelse(Three$Last_AI <= 2 & Three$Last_AI > 1, 2, 
-                                      ifelse(Three$Last_AI == 1, 1, NA)))))
+#Three <- Three %>%
+#  mutate(NumAI = ifelse(Three$Last_AI > 4, 4, 
+#                        ifelse(Three$Last_AI <= 4 & Three$Last_AI > 2, 3,
+#                               ifelse(Three$Last_AI <= 2 & Three$Last_AI > 1, 2, 
+#                                      ifelse(Three$Last_AI == 1, 1, NA)))))
+
+Three.offset <- Three %>%
+  mutate(Calving.lastAI = difftime(Last_InsDate, CalvingDate, units = "days"))
+Three.offset$Calving.lastAI <- as.numeric(round(Three.offset$Calving.lastAI, 0))
+summary(Three.offset$Calving.lastAI)
+
+plot(Three.offset$Calving.lastAI, Three.offset$Last_AI)
+
+boxplot(Three.offset$DaysToFirstIns~Three.offset$FarmNo)
 ```
 
 # Research Question: what is the assocation of numbers of AI and ketosis?
@@ -51,7 +66,24 @@ Three <- Three %>%
 p.mod1 <- glm(Last_AI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
 summary(p.mod1)
 
-plot(p.mod1)
+qp.mod1 <- glm(Last_AI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = quasipoisson(link = "log"), data = Three)
+summary(qp.mod1)
+
+coef1 = coef(p.mod1)
+coef2 = coef(qp.mod1)
+se.coef1 = se.coef(p.mod1)
+se.coef2 = se.coef(qp.mod1)
+models.both <- cbind(coef1, se.coef1, coef2, se.coef2, exponent = exp(coef1))
+models.both
+
+nb.mod1 <- glm.nb(Last_AI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three)
+summary(nb.mod1)
+coef3 = coef(nb.mod1)
+
+#nb.mod2 <- glm.nb(Last_AI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason, 
+#                  random = ~ 1|FarmNo,
+#                  data = Three)
+# doesn't work
 ```
 
 ## lme with random effect
@@ -104,6 +136,13 @@ plot(res3)
 
 mod4 <- glmer(Last_AI ~ AvgKeto20_100 + cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 # This model estimates the mean numbers of AI within the estimated observation time (per month), with fix average ketosis and fix farm effect (estimate the effect of farm size)
+summary(mod4)
+res4 <- simulateResiduals(mod4)
+plot(res4)
+
+mod5 <- glmer(Last_AI ~ AvgKeto20_100 + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+summary(mod5)
+
 
 summary(mod4)
 res4 <- simulateResiduals(mod4)
@@ -117,26 +156,25 @@ ggplot(data = Three, aes(x = Last_AI, y = AvgKeto20_100)) +
   geom_bar(stat = "identity")
 ```
 
+## glmmTMB
+```{r}
+fit1 <- glmmTMB(Last_AI ~ AvgKeto20_100 + cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+summary(fit1)
+res.fit1 <- simulateResiduals(fit1)
+plot(res.fit1)
+```
+
 ## Offset - time from calving to last AI
 ```{r}
-Three.offset <- Three %>%
-  mutate(Calving.lastAI = difftime(Last_InsDate, CalvingDate, units = "days"))
-Three.offset$Calving.lastAI <- as.numeric(round(Three.offset$Calving.lastAI, 0))
-summary(Three.offset$Calving.lastAI)
-plot(Three.offset$Calving.lastAI, Three.offset$Last_AI)
-
-df.check <- Three.offset %>%
-  select(FarmNo, CowId, CalvingDate, Last_InsDate, Last_AI, Calving.lastAI, DaysBtwFirstAndLastIns)
-
-df.table <- Three %>%
-  select(FarmNo, CowId, CalvingDate, First_AI, First_InsDate, DaysToFirstIns)
-boxplot(df.table$DaysToFirstIns~df.table$FarmNo)
-
 mod5 <- glm(Last_AI ~ AvgKeto20_100 + offset(log(Calving.lastAI)), data = Three.offset, family = poisson(link = "log"))
 summary(mod5)
 
 mod6 <- glmer(Last_AI ~ AvgKeto20_100 + offset(log(Calving.lastAI)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod6)
+
+summary(mod6)
+res6 <- simulateResiduals(mod6)
+plot(res6)
 
 anova(mod5, mod6)
 drop1(mod6)
@@ -258,6 +296,8 @@ table(extra$Last_AI)
 
 mod.extra <- glmer(Last_AI ~ AvgKeto20_100 + cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = extra, family = poisson(link = "log"))
 summary(mod.extra)
+res.extra <- simulateResiduals(mod.extra)
+plot(res.extra)
 
 mod.extra2 <- glmer(Last_AI ~ AvgKeto20_100)
 
