@@ -901,13 +901,13 @@ quantile(Three$DFC_CLA, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
 
 # DFCFirstHeat
 ggplot(data=Three, aes(x=DFCFirstHeat)) +
-  geom_histogram(breaks=seq(0, 250, by=5),
-                 fill="lightgreen") +
+  geom_histogram(breaks=seq(0, 250, by=5), fill="lightgreen") +
   #facet_wrap(Three$FarmNo) +
   ggtitle("Days from Calving to First Heat") +
   xlab("DFC") +
   ylab("#cows") +
   theme_classic()
+
 # Average DFCFirstHeat
 mean(Three$DFCFirstHeat, na.rm = T)
 quantile(Three$DFCFirstHeat, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
@@ -1071,6 +1071,9 @@ describe.by(Three$ad_Lactation, Three$AvgKeto20_atleast10)
 ## Make an excel file for prepared data
 ```{r}
 # Times AvgKeto20_atleast10 to 100 for easier quantify the one unit change of ketosis value and the influence on fertiliy
+summary(Three)
+Three <- Three %>%
+  filter(!is.na(PeakDFC) &!is.na(AvgMY60)) # exclude cows with missing values of PeakDFC and AvgMY60
 Three <- Three %>%
   mutate(AvgKeto20_100 = 100*AvgKeto20_atleast10)
 write_xlsx(Three, "../data/raw/Three.xlsx")
