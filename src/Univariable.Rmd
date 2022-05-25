@@ -248,7 +248,7 @@ df.test <- df.preg1 %>%
 # Exclude rows that have negative values of time between pregnancy and calving
 #df.preg1 <- df.preg1[(df.preg1$preg.calving >=0 | is.na(df.preg1$preg.calving)), ]
 
-##　TODO 
+## TODO 
 # Exclude the negative time difference between preg date and AI 
 #df.preg1 <- df.preg1[(df.preg1$preg.ins >=0 | is.na(df.preg1$preg.ins)), ]
 #summary(df.preg1)
@@ -796,6 +796,9 @@ Three <- df.three #4327 obs of 64v
 rm(list = ls(pattern = "df"))
 #rm(list = ls(pattern = "all_"))
 
+Three <- Three %>%
+  filter(!is.na(PeakDFC) &!is.na(AvgMY60)) # exclude cows with missing values of PeakDFC and AvgMY60
+
 # Add calving year
 Three <- Three %>%
   mutate(CalvingYear = format(CalvingDate, format = "%Y")) #4327 obs of 65v
@@ -840,8 +843,32 @@ Three <- Three %>%
   relocate(CowNo, .after = FarmNo) #4327 obs 66v
 ```
 
+## Make an excel file for prepared data
+```{r}
+# Times AvgKeto20_atleast10 to 100 for easier quantify the one unit change of ketosis value and the influence on fertiliy
+Three <- Three %>%
+  mutate(AvgKeto20_100 = 100*AvgKeto20_atleast10)
+write_xlsx(Three, "../data/raw/Three.xlsx")
+```
+
 ## General Info and reproduction parameters
 ```{r, warning=FALSE}
+# Number of cows in the farm
+Three$FarmNo <- as.factor(Three$FarmNo)
+ggplot(data=Three, aes(x=fct_rev(fct_infreq(FarmNo)))) +
+  geom_bar(stat="count", fill="orange") +
+  stat_count(geom="text", size=3, aes(label=..count..)) +
+  theme_classic() +
+  theme(panel.border = element_blank(), 
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
+  ggtitle("Number of Cows in Each Farm") +
+  xlab("Farm ID") +
+  ylab("#cows")
+
+summary(Three$CowNo)
+
 # Number of cows in each calving season
 ggplot(data=Three, aes(x=factor(CalvingSeason))) +
   geom_bar(stat="count", fill="darkred") +
@@ -896,6 +923,7 @@ ggplot(data=Three, aes(x=DFC_CLA)) +
   ylab("#cows") +
   theme_classic()
 # Average DFC_CLA
+summary(Three$DFC_CLA)
 mean(Three$DFC_CLA, na.rm = T)
 quantile(Three$DFC_CLA, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
 
@@ -907,6 +935,8 @@ ggplot(data=Three, aes(x=DFCFirstHeat)) +
   xlab("DFC") +
   ylab("#cows") +
   theme_classic()
+
+summary(Three$DFCFirstHeat)
 
 # Average DFCFirstHeat
 mean(Three$DFCFirstHeat, na.rm = T)
@@ -922,8 +952,7 @@ ggplot(data=Three, aes(x=DaysToFirstIns)) +
   ylab("#cows") +
   theme_classic()
 # Average DaysToFirstIns
-mean(Three$DaysToFirstIns, na.rm = T)
-quantile(Three$DaysToFirstIns, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
+summary(Three$DaysToFirstIns)
 
 #DaysToLastIns
 ggplot(data=Three, aes(x=DaysToLastIns)) +
@@ -945,7 +974,6 @@ ggplot(data=Three, aes(x=factor(Last_AI)))+
   xlab("#AI") +
   ylab("#cows")
 Three$Last_AI <- as.numeric(Three$Last_AI)
-mean(Three$Last_AI, na.rm = T)
 summary(Three$Last_AI)
 ```
 
@@ -963,8 +991,34 @@ ggplot(data=Three, aes(x=PeakDFC)) +
   ylab("#cows") +
   theme_classic()
 
+ggplot(data=Three, aes(x=PeakDFC)) +
+  geom_histogram(breaks=seq(0, 305, by=10),
+                 fill="royalblue1") +
+  ggtitle("DFC where highest peak yield was achieved") +
+  xlab("DFC") +
+  ylab("#cows") +
+  theme_classic()
+
+## PeakMY
+summary(Three$PeakMY)
+ggplot(data=Three, aes(x=PeakMY)) +
+  geom_histogram(breaks=seq(0, 110, by=3),
+                 fill="darkblue") +
+  ggtitle("Peak milk yield") +
+  xlab("DFC") +
+  ylab("#cows") +
+  theme_classic()
+
 ## AvgMY20
 summary(Three$AvgMY20)
+ggplot(data=Three, aes(x=AvgMY20)) +
+  geom_histogram(breaks=seq(0, 60, by=3),
+                 fill="blue", alpha = 0.2) +
+  ggtitle("Average milk yield within 20 DFC") +
+  xlab("Milk yield (kg)") +
+  ylab("#cows") +
+  theme_classic()
+
 bin <- 2.5
 ggplot(data=Three, aes(x=AvgMY20)) +
   geom_density(aes(y = ..count.. * bin), fill = "blue", alpha = 0.2, col = NA) +
@@ -976,14 +1030,31 @@ ggplot(data=Three, aes(x=AvgMY20)) +
   ylab("#cows") +
   theme_classic() 
 
+# Split data with different lactation groups
+df.parity1 <- Three %>%
+  filter(ad_Lactation == 1)
+df.parity2 <- Three %>%
+  filter(ad_Lactation == 2)
+df.parity3 <- Three %>%
+  filter(ad_Lactation == 3)
+df.parity4 <- Three %>%
+  filter(ad_Lactation == 4)
+
 mean(df.parity1$AvgMY20, na.rm = T)
 mean(df.parity2$AvgMY20, na.rm = T)
 mean(df.parity3$AvgMY20, na.rm = T)
 mean(df.parity4$AvgMY20, na.rm = T)
 
-
 ## SumMY20
 summary(Three$SumMY20)
+ggplot(data=Three, aes(x=SumMY20)) +
+  geom_histogram(breaks=seq(100, 1220, by=50),
+                 fill="blue", alpha = 0.2) +
+  ggtitle("Cumulative milk yield within 20 DFC") +
+  xlab("Milk yield (kg)") +
+  ylab("#cows") +
+  theme_classic()
+
 bin <- 50
 ggplot(data=Three, aes(x=SumMY20)) +
   geom_density(aes(y = ..count.. * bin), fill = "blue", alpha = 0.2, col = NA) +
@@ -1002,6 +1073,14 @@ mean(df.parity4$SumMY20, na.rm = T)
 
 ## AvgMY60
 summary(Three$AvgMY60)
+ggplot(data=Three, aes(x=AvgMY60)) +
+  geom_histogram(breaks=seq(0, 70, by=3),
+                 fill="blue", alpha = 0.2) +
+  ggtitle("Average milk yield within 60 DFC") +
+  xlab("Milk yield (kg)") +
+  ylab("#cows") +
+  theme_classic()
+
 bin <- 2.5
 ggplot(data=Three, aes(x=AvgMY60)) +
   geom_density(aes(y = ..count.. * bin), fill = "blue", alpha = 0.2, col = NA) +
@@ -1018,9 +1097,16 @@ mean(df.parity2$AvgMY60, na.rm = T)
 mean(df.parity3$AvgMY60, na.rm = T)
 mean(df.parity4$AvgMY60, na.rm = T)
 
-
 ## SumMY60
 summary(Three$SumMY60)
+ggplot(data=Three, aes(x=SumMY60)) +
+  geom_histogram(breaks=seq(330, 4400, by=100),
+                 fill="blue", alpha = 0.2) +
+  ggtitle("Cumulative milk yield within 60 DFC") +
+  xlab("Milk yield (kg)") +
+  ylab("#cows") +
+  theme_classic()
+
 bin <- 100
 ggplot(data=Three, aes(x=SumMY60)) +
   geom_density(aes(y = ..count.. * bin), fill = "blue", alpha = 0.2, col = NA) +
@@ -1040,17 +1126,6 @@ mean(df.parity4$SumMY60, na.rm = T)
 
 ## Ketosis parameters
 ```{r}
-# Split data with different lactation groups
-df.parity1 <- Three %>%
-  filter(ad_Lactation == 1)
-df.parity2 <- Three %>%
-  filter(ad_Lactation == 2)
-df.parity3 <- Three %>%
-  filter(ad_Lactation == 3)
-df.parity4 <- Three %>%
-  filter(ad_Lactation == 4)
-```
-```{r}
 #library(psych)
 #AvgKeto20_atleast10
 summary(Three$AvgKeto20_atleast10)
@@ -1065,16 +1140,4 @@ plot(Three$AvgKeto20_atleast10, Three$ad_Lactation,
      xlab = "Average milk BHB in 20 DFC (mmol/L)", pch = 19)
 abline(v = 0.08, col = "red")
 describe.by(Three$ad_Lactation, Three$AvgKeto20_atleast10) 
-
-```
-
-## Make an excel file for prepared data
-```{r}
-# Times AvgKeto20_atleast10 to 100 for easier quantify the one unit change of ketosis value and the influence on fertiliy
-summary(Three)
-Three <- Three %>%
-  filter(!is.na(PeakDFC) &!is.na(AvgMY60)) # exclude cows with missing values of PeakDFC and AvgMY60
-Three <- Three %>%
-  mutate(AvgKeto20_100 = 100*AvgKeto20_atleast10)
-write_xlsx(Three, "../data/raw/Three.xlsx")
 ```

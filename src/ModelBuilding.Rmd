@@ -444,13 +444,6 @@ plot(log(Three.surv$AvgKeto20_100), resid.cox10)
 lines(lowess(log(Three.surv$AvgKeto20_100), resid.cox10))
 ```
 
-# NO MISSING VALUES
-```{r}
-survival <- Three.surv %>%
-  filter(!is.na(PeakDFC) &!is.na(AvgMY60))
-summary(survival)
-```
-
 # Coxme model with random effect
 ```{r}
 cox0 <- coxph(Surv(DFCFirstHeat, FirstHeat)~1, data=survival)
