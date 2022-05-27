@@ -156,10 +156,29 @@ summary(survival$DFCFirstHeat)
 var(survival$DFCFirstHeat)
 sd(survival$DFCFirstHeat)
 
+# BOXPLOT- DFCFirstHeat vs. FarmNo
 plot(survival$DFCFirstHeat ~ survival$AvgKeto20_100)
-boxplot(survival$DFCFirstHeat ~ survival$FarmNo)
+boxplot(survival$DFCFirstHeat ~ survival$FarmNo, xlab = "Farm ID", ylab = "Days from calving to first heat")
+ggplot(data = survival, aes(x = FarmNo, y = DFCFirstHeat)) +
+  geom_boxplot(outlier.color = "red") + 
+  theme_classic() +
+  labs(x = "Farm ID", y = "Day from calving to first heat (days)") +
+  theme(axis.text.x = element_text(angle = 90))
+  
+# BOXPLOT- AvgKeto20_100 vs. FarmNo
 boxplot(survival$AvgKeto20_100 ~ survival$FarmNo)
+ggplot(data = survival, aes(x = FarmNo, y = AvgKeto20_100)) +
+  geom_boxplot(outlier.color = "red") + 
+  theme_classic() +
+  labs(x = "Farm ID", y = "Average milk BHB*100 (mmol/L)") +
+  theme(axis.text.x = element_text(angle = 90))
+
+
 boxplot(survival$DFCFirstHeat ~ survival$ad_Lactation)
+ggplot(data = survival, aes(x = ad_Lactation, y = DFCFirstHeat)) +
+  geom_boxplot(outlier.color = "red") + 
+  theme_classic() +
+  labs(x = "Parity", y = "Day from calving to first heat (days)")
 ```
 
 # Survival curves (DFCFirstHeat)
@@ -407,6 +426,7 @@ cox2
 anova(cox1, cox2)
 
 drop1(cox2) # model 2 without dropping any parameter is the best
+MASS::stepAIC(cox2)
 
 plot(survival$PeakMY, survival$AvgMY60)
 cor(survival$PeakMY, survival$AvgMY60) # 0.9, highly correlated variables
@@ -418,7 +438,7 @@ drop1(cox3) # model 3 without dropping any parameter is the best
 plot(survival$PeakMY, survival$PeakDFC)
 cor(survival$PeakDFC, survival$PeakMY) # not highly correlated
 
-anova(cox2, cox3) # model 2 is better than model 3
+anova(cox2, cox3) # model 2 is better than model 3, but model 2 has multicollinearity problem
 
 # only use one milk variable (PeakMY)
 cox4 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + PeakMY + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
@@ -445,9 +465,9 @@ coxme2$loglik
 AIC(coxme1)
 AIC(coxme2)
 
-#######################
-## Check Interaction ##
-#######################
+#########################
+##  Check Interaction  ##
+#########################
 coxme3 <- coxme(Surv(DFCFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + AvgKeto20_100:ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme3
 anova(coxme2, coxme3)
