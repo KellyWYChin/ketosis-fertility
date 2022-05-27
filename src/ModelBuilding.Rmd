@@ -31,16 +31,16 @@ Three <- read_excel("../data/raw/Three.xlsx")
 
 # Linear Model
 ```{r}
-mod1 <- lm(Three$DFCFirstHeat~Three$AvgKeto20_atleast10 + Three$MaxKetoDFC20 + factor(Three$ad_Lactation) + Three$PeakDFC + Three$AvgMY20 + Three$CalvingSeason + factor(Three$FarmNo))
+mod1 <- lm(Three$DaysToFirstHeat~Three$AvgKeto20_atleast10 + Three$MaxKetoDFC20 + factor(Three$ad_Lactation) + Three$PeakDFC + Three$AvgMY20 + Three$CalvingSeason + factor(Three$FarmNo))
 summary(mod1)
 plot(mod1)
 
-mod1_AvgMY <- lm(Three$DFCFirstHeat~Three$AvgKeto20_atleast10 + factor(Three$ad_Lactation) + Three$PeakDFC +Three$CalvingSeason + factor(Three$FarmNo))
+mod1_AvgMY <- lm(Three$DaysToFirstHeat~Three$AvgKeto20_atleast10 + factor(Three$ad_Lactation) + Three$PeakDFC +Three$CalvingSeason + factor(Three$FarmNo))
 summary(mod1_AvgMY)
 
 anova(mod1, mod1_AvgMY)
 
-mod1.1 <- lm(Three$DFCFirstHeat~Three$AvgKeto20_atleast10 + Three$Lactation + Three$PeakDFC + Three$AvgMY20 + Three$CalvingSeason + factor(Three$FarmNo))
+mod1.1 <- lm(Three$DaysToFirstHeat~Three$AvgKeto20_atleast10 + Three$Lactation + Three$PeakDFC + Three$AvgMY20 + Three$CalvingSeason + factor(Three$FarmNo))
 summary(mod1.1)
 
 anova(mod1, mod1.1)
@@ -49,7 +49,7 @@ anova(mod1, mod1.1)
 Three <- Three %>%
   mutate(AvgKeto20_100 = 100*AvgKeto20_atleast10)
 
-mod1.100 <- lm(DFCFirstHeat~AvgKeto20_100 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason + factor(FarmNo), data = Three)
+mod1.100 <- lm(DaysToFirstHeat~AvgKeto20_100 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason + factor(FarmNo), data = Three)
 summary(mod1.100)
     
 ```
@@ -58,18 +58,18 @@ summary(mod1.100)
 ```{r}
 Three.log <- Three %>%
   mutate(log.DFC_CLA = log(DFC_CLA),
-         log.DFCFirstHeat = log(DFCFirstHeat), 
+         log.DaysToFirstHeat = log(DaysToFirstHeat), 
          log.DaysToFirstIns = log(DaysToFirstIns), 
          log.AvgKeto20 = log(AvgKeto20_atleast10), 
          log.AvgKeto60 = log(AvgKeto60_atleast10)) #4327 obs of 71v
 
 # log transform the outcome variable
-mod1.log <- lm(log.DFCFirstHeat~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + FarmNo, data = Three.log)
+mod1.log <- lm(log.DaysToFirstHeat~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + FarmNo, data = Three.log)
 summary(mod1.log)
 #plot(mod1.log)
 
 # FarmNo and interaction with ketosis
-mod1.log.int <- lm(log.DFCFirstHeat~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + FarmNo:AvgKeto20_atleast10, data = Three.log)
+mod1.log.int <- lm(log.DaysToFirstHeat~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + FarmNo:AvgKeto20_atleast10, data = Three.log)
 summary(mod1.log.int)
 #plot(mod1.log.int)
 
@@ -79,20 +79,20 @@ anova(mod1.log, mod1.log.int)
 # Log transformation (2)
 ```{r}
 # log transform both outcome and explantory variables
-mod2.log <- lm(log.DFCFirstHeat~log.AvgKeto20 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + FarmNo, data = Three.log)
+mod2.log <- lm(log.DaysToFirstHeat~log.AvgKeto20 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + FarmNo, data = Three.log)
 summary(mod2.log)
 plot(mod2.log)
 
 # FarmNo and interaction with ketosis
-mod2.log.int <- lm(log.DFCFirstHeat~log.AvgKeto20 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo):log.AvgKeto20, data = Three.log)
+mod2.log.int <- lm(log.DaysToFirstHeat~log.AvgKeto20 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo):log.AvgKeto20, data = Three.log)
 summary(mod2.log.int)
 plot(mod2.log.int)
 
 compare_performance(mod2.log, mod2.log.int, rank = TRUE)
 
 
-mod2.log1 <- lm(log.DFCFirstHeat~log.AvgKeto20 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three.log)
-mod2.log2 <- lm(log.DFCFirstHeat~log.AvgKeto20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three.log)
+mod2.log1 <- lm(log.DaysToFirstHeat~log.AvgKeto20 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three.log)
+mod2.log2 <- lm(log.DaysToFirstHeat~log.AvgKeto20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three.log)
 summary(mod2.log1)
 summary(mod2.log2)
 
@@ -101,9 +101,9 @@ compare_performance(mod2.log1, mod2.log2, rank = TRUE)
 
 # Generalized Linear Model
 ```{r}
-glm.mod1 <- glm(DFCFirstHeat~AvgKeto20_atleast10 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason, family = "gaussian", data = Three)
+glm.mod1 <- glm(DaysToFirstHeat~AvgKeto20_atleast10 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason, family = "gaussian", data = Three)
 
-glm.log1 <- glm(log.DFCFirstHeat~log.AvgKeto20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason, data = Three.log, family = "gaussian")
+glm.log1 <- glm(log.DaysToFirstHeat~log.AvgKeto20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason, data = Three.log, family = "gaussian")
 summary(glm1.log) # the same as linear model
 glm1.log$aic
 
@@ -120,7 +120,7 @@ anova(glm.mod1, glm.log1, test = "Chisq")
 ```
 ```{r}
 survival <- Three %>%
-  mutate(FirstHeat = ifelse(is.na(Three$DFCFirstHeat), 0, 1)) %>%
+  mutate(FirstHeat = ifelse(is.na(Three$DaysToFirstHeat), 0, 1)) %>%
   mutate(FirstAI = ifelse(is.na(Three$DaysToFirstIns), 0, 1)) %>%
   mutate(KetoStatus20 = ifelse(Three$AvgKeto20_atleast10 >= 0.08, 1, 0)) %>%
   mutate(KetoQua = ifelse(Three$AvgKeto20_atleast10 >= 0.076, 4, 
@@ -143,8 +143,8 @@ survival$KetoQua <- as.factor(survival$KetoQua)
 
 # Descriptive statistics
 ```{r}
-# DFCFirstHeat
-ggplot(data=survival, aes(x=DFCFirstHeat))+
+# DaysToFirstHeat
+ggplot(data=survival, aes(x=DaysToFirstHeat))+
   geom_histogram(breaks=seq(0, 250, by=5),
                  fill="lightblue")+
   #facet_wrap(Three$FarmNo) +
@@ -152,14 +152,14 @@ ggplot(data=survival, aes(x=DFCFirstHeat))+
   xlab("DFC")+
   ylab("#cows")+
   theme_classic()
-summary(survival$DFCFirstHeat)
-var(survival$DFCFirstHeat)
-sd(survival$DFCFirstHeat)
+summary(survival$DaysToFirstHeat)
+var(survival$DaysToFirstHeat)
+sd(survival$DaysToFirstHeat)
 
-# BOXPLOT- DFCFirstHeat vs. FarmNo
-plot(survival$DFCFirstHeat ~ survival$AvgKeto20_100)
-boxplot(survival$DFCFirstHeat ~ survival$FarmNo, xlab = "Farm ID", ylab = "Days from calving to first heat")
-ggplot(data = survival, aes(x = FarmNo, y = DFCFirstHeat)) +
+# BOXPLOT- DaysToFirstHeat vs. FarmNo
+plot(survival$DaysToFirstHeat ~ survival$AvgKeto20_100)
+boxplot(survival$DaysToFirstHeat ~ survival$FarmNo, xlab = "Farm ID", ylab = "Days from calving to first heat")
+ggplot(data = survival, aes(x = FarmNo, y = DaysToFirstHeat)) +
   geom_boxplot(outlier.color = "red") + 
   theme_classic() +
   labs(x = "Farm ID", y = "Day from calving to first heat (days)") +
@@ -174,16 +174,16 @@ ggplot(data = survival, aes(x = FarmNo, y = AvgKeto20_100)) +
   theme(axis.text.x = element_text(angle = 90))
 
 
-boxplot(survival$DFCFirstHeat ~ survival$ad_Lactation)
-ggplot(data = survival, aes(x = ad_Lactation, y = DFCFirstHeat)) +
+boxplot(survival$DaysToFirstHeat ~ survival$ad_Lactation)
+ggplot(data = survival, aes(x = ad_Lactation, y = DaysToFirstHeat)) +
   geom_boxplot(outlier.color = "red") + 
   theme_classic() +
   labs(x = "Parity", y = "Day from calving to first heat (days)")
 ```
 
-# Survival curves (DFCFirstHeat)
+# Survival curves (DaysToFirstHeat)
 ```{r}
-surv.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ 1, data = survival)
+surv.heat <- survfit(Surv(DaysToFirstHeat, FirstHeat) ~ 1, data = survival)
 plot(surv.heat, main = "Cumulatvie survival time from calving to first heat",
      ylab = "Cumulative survival probability",
      xlab = "Time (days from calving to first heat)")
@@ -199,7 +199,7 @@ ggsurvplot(surv.heat, data = survival,
            tables.theme = theme_cleantable(),
            ggtheme = theme_bw())
 
-surv1.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ ad_Lactation, data=survival)
+surv1.heat <- survfit(Surv(DaysToFirstHeat, FirstHeat) ~ ad_Lactation, data=survival)
 print(surv1.heat)
 ggsurvplot(surv1.heat, data=survival,
            surv.median.line = "hv",
@@ -224,7 +224,7 @@ ggsurvplot(surv1.heat, data = survival,  main = "Survival curve",
    font.tickslab = c(12, "plain", "darkgreen"))
 }
 
-surv2.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ KetoStatus20, data=survival)
+surv2.heat <- survfit(Surv(DaysToFirstHeat, FirstHeat) ~ KetoStatus20, data=survival)
 summary(surv2.heat)
 print(surv2.heat) #risk table
 ggsurvplot(surv2.heat, data=survival,
@@ -239,7 +239,7 @@ ggsurvplot(surv2.heat, data=survival,
            tables.theme = theme_cleantable(),
            ggtheme = theme_bw())
 
-surv3.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ KetoQua, data=survival)
+surv3.heat <- survfit(Surv(DaysToFirstHeat, FirstHeat) ~ KetoQua, data=survival)
 print(surv3.heat)
 ggsurvplot(surv3.heat, data=survival,
            surv.median.line = "hv",
@@ -253,7 +253,7 @@ ggsurvplot(surv3.heat, data=survival,
            tables.theme = theme_cleantable(),
            ggtheme = theme_bw())
 
-surv4.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ KetoMaxDay, data=survival)
+surv4.heat <- survfit(Surv(DaysToFirstHeat, FirstHeat) ~ KetoMaxDay, data=survival)
 print(surv4.heat)
 ggsurvplot(surv4.heat, data=survival,
            surv.median.line = "hv",
@@ -267,7 +267,7 @@ ggsurvplot(surv4.heat, data=survival,
            tables.theme = theme_cleantable(),
            ggtheme = theme_bw())
 
-surv5.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ KetoMaxDay2, data=survival)
+surv5.heat <- survfit(Surv(DaysToFirstHeat, FirstHeat) ~ KetoMaxDay2, data=survival)
 print(surv5.heat)
 ggsurvplot(surv5.heat, data=survival,
            surv.median.line = "hv",
@@ -281,7 +281,7 @@ ggsurvplot(surv5.heat, data=survival,
            tables.theme = theme_cleantable(),
            ggtheme = theme_bw())
 
-surv6.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ CalvingYear, data = survival)
+surv6.heat <- survfit(Surv(DaysToFirstHeat, FirstHeat) ~ CalvingYear, data = survival)
 print(surv6.heat)
 ggsurvplot(surv6.heat, data=survival,
            surv.median.line = "hv",
@@ -295,7 +295,7 @@ ggsurvplot(surv6.heat, data=survival,
            tables.theme = theme_cleantable(),
            ggtheme = theme_bw())
 
-surv7.heat <- survfit(Surv(DFCFirstHeat, FirstHeat) ~ CalvingSeason, data = survival)
+surv7.heat <- survfit(Surv(DaysToFirstHeat, FirstHeat) ~ CalvingSeason, data = survival)
 print(surv7.heat)
 ggsurvplot(surv7.heat, data=survival,
            surv.median.line = "hv",
@@ -313,51 +313,51 @@ ggsurvplot(surv7.heat, data=survival,
 # Cox hazard proportional regression - First Heat vs ketosis
 ```{r} 
 # Univariate Cox regression
-cox.ketostatus <- coxph(Surv(DFCFirstHeat, FirstHeat)~ KetoStatus20, data = survival)
+cox.ketostatus <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ KetoStatus20, data = survival)
 cox.ketostatus
 plot(survfit(cox.avgketo, conf.int = TRUE, data = survival))
 
-cox.avgketo <- coxph(Surv(DFCFirstHeat, FirstHeat)~ AvgKeto20_100, data = survival)
+cox.avgketo <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100, data = survival)
 cox.avgketo
 
-cox.maxketo20 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ MaxKeto20, data = survival)
+cox.maxketo20 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ MaxKeto20, data = survival)
 cox.maxketo20
 
-cox.MaxKetoDFC20 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ MaxKetoDFC20, data = survival)
+cox.MaxKetoDFC20 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ MaxKetoDFC20, data = survival)
 cox.MaxKetoDFC20
 
-cox.nhighketo20 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ nHighKeto20, data = survival)
+cox.nhighketo20 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ nHighKeto20, data = survival)
 cox.nhighketo20
 
-cox.ketodur20 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ KetoDur20, data = survival)
+cox.ketodur20 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ KetoDur20, data = survival)
 cox.ketodur20
 ```
 
 # Cox hazard proportional regression - First Heat vs Farm Info
 ```{r}
 # Univariate Cox regression
-cox.lactation <- coxph(Surv(DFCFirstHeat, FirstHeat)~ ad_Lactation, data = survival)
+cox.lactation <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ ad_Lactation, data = survival)
 cox.lactation
 
-cox.lactation1 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ Lactation, data = survival)
+cox.lactation1 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ Lactation, data = survival)
 cox.lactation1
 
-cox.farmno <- coxph(Surv(DFCFirstHeat, FirstHeat)~ FarmNo, data = survival)
+cox.farmno <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ FarmNo, data = survival)
 cox.farmno
 
-cox.calvingseason <- coxph(Surv(DFCFirstHeat, FirstHeat)~ CalvingSeason, data = survival)
+cox.calvingseason <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ CalvingSeason, data = survival)
 cox.calvingseason
 
-cox.peakdfc <- coxph(Surv(DFCFirstHeat, FirstHeat)~ PeakDFC, data = survival)
+cox.peakdfc <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ PeakDFC, data = survival)
 cox.peakdfc
 
-cox.peakmy <- coxph(Surv(DFCFirstHeat, FirstHeat)~ PeakMY, data = survival)
+cox.peakmy <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ PeakMY, data = survival)
 cox.peakmy
 
-cox.avgmy20 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ AvgMY20, data = survival)
+cox.avgmy20 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ AvgMY20, data = survival)
 cox.avgmy20
 
-cox.summy20 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ SumMY20, data = survival)
+cox.summy20 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ SumMY20, data = survival)
 cox.summy20
 ```
 
@@ -372,12 +372,12 @@ covariates <- c("AvgKeto20_atleast10", "MaxKetoDFC20", #"nHighKeto20", "KetoDur2
                 "FarmNo", "Lactation")
 
 univ_formulas <- sapply(covariates,
-                        function(x) as.formula(paste('Surv(DFCFirstHeat, FirstHeat) ~', x)), 
+                        function(x) as.formula(paste('Surv(DaysToFirstHeat, FirstHeat) ~', x)), 
                         simplify = FALSE)
 
 univ_formulas <- vector()
 for (x in covariates) {
-  univ_formulas <- c(univ_formulas, paste('Surv(DFCFirstHeat, FirstHeat) ~', x))
+  univ_formulas <- c(univ_formulas, paste('Surv(DaysToFirstHeat, FirstHeat) ~', x))
 }
 
 univ_models <- lapply(univ_formulas, function(x)(coxph(as.formula(x), data = survival)))
@@ -415,13 +415,13 @@ res <- t(as.data.frame(univ_results, check.names = FALSE))
 
 # Cox PH model with different milk parameters
 ```{r}
-cox0 <- coxph(Surv(DFCFirstHeat, FirstHeat)~1, data=survival)
-cox10 <- coxph(Surv(DFCFirstHeat, FirstHeat)~AvgKeto20_100, data = survival)
+cox0 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~1, data=survival)
+cox10 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100, data = survival)
 
-cox1 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
+cox1 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
 cox1
 
-cox2 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + PeakMY + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
+cox2 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + PeakMY + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
 cox2
 anova(cox1, cox2)
 
@@ -432,7 +432,7 @@ plot(survival$PeakMY, survival$AvgMY60)
 cor(survival$PeakMY, survival$AvgMY60) # 0.9, highly correlated variables
 
 # change AvgMY60 to PeakDFC
-cox3 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + PeakMY + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
+cox3 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + PeakMY + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
 cox3
 drop1(cox3) # model 3 without dropping any parameter is the best
 plot(survival$PeakMY, survival$PeakDFC)
@@ -441,23 +441,23 @@ cor(survival$PeakDFC, survival$PeakMY) # not highly correlated
 anova(cox2, cox3) # model 2 is better than model 3, but model 2 has multicollinearity problem
 
 # only use one milk variable (PeakMY)
-cox4 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + PeakMY + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
+cox4 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + PeakMY + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
 cox4
 
 anova(cox2, cox4) # model 2 is better than model 4
 anova(cox3, cox4) # model 3 is slightly better than model 4
 
 # only use AvgMY60
-cox5 <- coxph(Surv(DFCFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
+cox5 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
 cox5 # AvgMY60 is not significant in the model, can be removed
 ```
 
 # Coxme model with random effect
 ```{r}
-coxme1 <- coxme(Surv(DFCFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme1 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme1
 anova(cox1, coxme1)
-coxme2 <- coxme(Surv(DFCFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme2 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme2
 
 coxme1$loglik
@@ -468,12 +468,12 @@ AIC(coxme2)
 #########################
 ##  Check Interaction  ##
 #########################
-coxme3 <- coxme(Surv(DFCFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + AvgKeto20_100:ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme3 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + AvgKeto20_100:ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme3
 anova(coxme2, coxme3)
 # don't need to consider interaction between ketosis and parity
 
-coxme4 <- coxme(Surv(DFCFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + AvgKeto20_100:PeakDFC + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme4 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + AvgKeto20_100:PeakDFC + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme4
 anova(coxme2, coxme4)
 # don't need to consider interaction between ketosis and peak day of highest milk yield
@@ -497,17 +497,17 @@ lines(lowess(log(survival$AvgKeto20_100), resid.cox10))
 
 # Coxme model with random effect
 ```{r}
-cox0 <- coxph(Surv(DFCFirstHeat, FirstHeat)~1, data=survival)
-cox10 <- coxph(Surv(DFCFirstHeat, FirstHeat)~AvgKeto20_100, data = survival)
+cox0 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~1, data=survival)
+cox10 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100, data = survival)
 summary(cox10)
 
-cox1 <- coxph(Surv(DFCFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
+cox1 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
 summary(cox1)
 
-coxme1 <- coxme(Surv(DFCFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme1 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme1
 anova(cox1, coxme1)
-coxme2 <- coxme(Surv(DFCFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme2 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme2
 
 coxme1$loglik
@@ -517,7 +517,7 @@ AIC(coxme2)
 ```
 
 ```{r}
-coxme1.keto <- coxme(Surv(DFCFirstHeat, FirstHeat)~KetoStatus20 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme1.keto <- coxme(Surv(DaysToFirstHeat, FirstHeat)~KetoStatus20 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme1.keto
 
 ```
@@ -525,13 +525,13 @@ coxme1.keto
 # Martingale residuals: check linearity
 ```{r}
 # check AvgKeto20_100 in coxme1
-coxme1.keto <- coxme(Surv(DFCFirstHeat, FirstHeat)~ ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme1.keto <- coxme(Surv(DaysToFirstHeat, FirstHeat)~ ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 res.coxme1 <- resid(coxme1.keto, type = "martingale")
 plot(survival$AvgKeto20_100, res.coxme1, main = "Residual of AvgKeto20_100")
 lines(lowess(survival$AvgKeto20_100, res.coxme1), col = "red")
 
 # check PeakDFC in coxme1
-coxme1.peakdfc <- coxme(Surv(DFCFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme1.peakdfc <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 res.coxme1.peakdfc <- resid(coxme1.peakdfc, type = "martingale")
 plot(survival$PeakDFC, res.coxme1.peakdfc, main = "Residual of PeakDFC")
 lines(lowess(survival$PeakDFC, res.coxme1.peakdfc), col = "red")
@@ -539,20 +539,20 @@ lines(lowess(survival$PeakDFC, res.coxme1.peakdfc), col = "red")
 
 ```{r}
 # check AvgKeto20_100 in coxme2
-coxme2.keto <- coxme(Surv(DFCFirstHeat, FirstHeat)~ ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme2.keto <- coxme(Surv(DaysToFirstHeat, FirstHeat)~ ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 res.coxme2 <- resid(coxme2.keto, type = "martingale")
 plot(survival$AvgKeto20_100, res.coxme2, main = "Residual of AvgKeto20_100")
 lines(lowess(survival$AvgKeto20_100, res.coxme2), col = "red")
 
 # check PeakDFC in coxme2
-coxme2.peakdfc <- coxme(Surv(DFCFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme2.peakdfc <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 res.coxme2.peakdfc <- resid(coxme2.peakdfc, type = "martingale")
 plot(survival$PeakDFC, res.coxme2.peakdfc, main = "Residual of PeakDFC")
 lines(lowess(survival$PeakDFC, res.coxme2.peakdfc), col = "red")
 ```
 
 ```{r}
-coxme2.lact <- coxme(Surv(DFCFirstHeat, FirstHeat)~ AvgKeto20_100 + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme2.lact <- coxme(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100 + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 res.coxme2.lact <- resid(coxme2.lact, type = "martingale")
 plot(survival$ad_Lactation, res.coxme2.lact, main = "Residual of ad_Lactation")
 lines(lowess(survival$ad_Lactation, res.coxme2.lact), col = "red")
@@ -568,7 +568,7 @@ resid.coxme1[,1]
 
 ```{r}
 ## First Heat
-df.cox1.heat <- coxph(Surv(DFCFirstHeat, FirstHeat) ~ ad_Lactation + AvgKeto20_atleast10 + MaxKetoDFC20 + PeakDFC + AvgMY20 + CalvingSeason  + factor(FarmNo), data = survival)
+df.cox1.heat <- coxph(Surv(DaysToFirstHeat, FirstHeat) ~ ad_Lactation + AvgKeto20_atleast10 + MaxKetoDFC20 + PeakDFC + AvgMY20 + CalvingSeason  + factor(FarmNo), data = survival)
 summary(df.cox1.heat)
 
 ggsurvplot(survfit(df.cox1.heat), data = survival, color= "#2E9FDF", ggtheme = theme_minimal())

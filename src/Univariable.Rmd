@@ -840,7 +840,7 @@ quantile(df.cowno$CowNo, c(0.25, 0.5, 0.75))
 ### Number of cows in each farm
 Three <- merge(Three, df.cowno, by = c('FarmNo'), sort = F) 
 Three <- Three %>%
-  relocate(CowNo, .after = FarmNo) #4327 obs 66v
+  relocate(CowNo, .after = FarmNo) #4041 obs 66v
 ```
 
 ## Make an excel file for prepared data
@@ -848,6 +848,11 @@ Three <- Three %>%
 # Times AvgKeto20_atleast10 to 100 for easier quantify the one unit change of ketosis value and the influence on fertiliy
 Three <- Three %>%
   mutate(AvgKeto20_100 = 100*AvgKeto20_atleast10)
+# Change some column names
+colnames(Three)[colnames(Three) == "DFCFirstHeat"] <- "DaysToFirstHeat"
+colnames(Three)[colnames(Three) == "DFC_CLA"] <- "DaysToCLA"
+colnames(Three)[colnames(Three) == "Last_AI"] <- "NumAI"
+
 write_xlsx(Three, "../data/raw/Three.xlsx")
 ```
 
@@ -913,8 +918,8 @@ ggplot(data=Three, aes(x=cull.calving)) +
 mean(Three$cull.calving, na.rm = TRUE)
 quantile(Three$cull.calving, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
 
-# Days from calving to reproduction events (DFC_CLA)
-ggplot(data=Three, aes(x=DFC_CLA)) +
+# Days from calving to reproduction events (DaysToCLA)
+ggplot(data=Three, aes(x=DaysToCLA)) +
   geom_histogram(breaks=seq(0, 200, by=5),
                  fill="green") +
   #facet_wrap(Three$FarmNo) +
@@ -922,13 +927,13 @@ ggplot(data=Three, aes(x=DFC_CLA)) +
   xlab("DFC") +
   ylab("#cows") +
   theme_classic()
-# Average DFC_CLA
-summary(Three$DFC_CLA)
-mean(Three$DFC_CLA, na.rm = T)
-quantile(Three$DFC_CLA, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
+# Average DaysToCLA
+summary(Three$DaysToCLA)
+mean(Three$DaysToCLA, na.rm = T)
+quantile(Three$DaysToCLA, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
 
-# DFCFirstHeat
-ggplot(data=Three, aes(x=DFCFirstHeat)) +
+# DaysToFirstHeat
+ggplot(data=Three, aes(x=DaysToFirstHeat)) +
   geom_histogram(breaks=seq(0, 250, by=5), fill="lightgreen") +
   #facet_wrap(Three$FarmNo) +
   ggtitle("Days from Calving to First Heat") +
@@ -936,11 +941,11 @@ ggplot(data=Three, aes(x=DFCFirstHeat)) +
   ylab("#cows") +
   theme_classic()
 
-summary(Three$DFCFirstHeat)
+summary(Three$DaysToFirstHeat)
 
-# Average DFCFirstHeat
-mean(Three$DFCFirstHeat, na.rm = T)
-quantile(Three$DFCFirstHeat, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
+# Average DaysToFirstHeat
+mean(Three$DaysToFirstHeat, na.rm = T)
+quantile(Three$DaysToFirstHeat, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
 
 #DaysToFirstIns
 ggplot(data=Three, aes(x=DaysToFirstIns)) +
@@ -1139,5 +1144,24 @@ plot(Three$AvgKeto20_atleast10, Three$ad_Lactation,
      ylab = "Lactation groups",
      xlab = "Average milk BHB in 20 DFC (mmol/L)", pch = 19)
 abline(v = 0.08, col = "red")
-describe.by(Three$ad_Lactation, Three$AvgKeto20_atleast10) 
+describe.by(Three$ad_Lactation, Three$AvgKeto20_atleast10)
+
+summary(Three$MaxKetoDFC20)
+ggplot(data=Three, aes(x=MaxKetoDFC20)) +
+  geom_histogram(breaks=seq(0, 20, by=0.5),
+                 fill="blue", alpha = 0.3) +
+  ggtitle("DFC when milk BHB reached the max within 20 DFC") +
+  xlab("day") +
+  ylab("#cows") +
+  theme_classic()
+
+summary(Three$MaxKetoDFC60)
+ggplot(data=Three, aes(x=MaxKetoDFC60)) +
+  geom_histogram(breaks=seq(0, 60, by=0.5),
+                 fill="blue", alpha = 0.3) +
+  ggtitle("DFC when milk BHB reached the max within 20 DFC") +
+  xlab("day") +
+  ylab("#cows") +
+  theme_classic()
 ```
+

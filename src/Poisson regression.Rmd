@@ -39,38 +39,40 @@ Three <- read_excel("../data/raw/Three.xlsx")
 #Three$CalvingYear <- as.factor(ifelse(Three$CalvingYear == 2018, 1, 2))
 summary(Three)
 
-summary(Three$Last_AI)
-sd(Three$Last_AI, na.rm = T)
-var(Three$Last_AI, na.rm = T)
+summary(Three$NumAI)
+sd(Three$NumAI, na.rm = T)
+var(Three$NumAI, na.rm = T)
 
 # Categorize numbers of AI
 #Three <- Three %>%
-#  mutate(NumAI = ifelse(Three$Last_AI > 4, 4, 
-#                        ifelse(Three$Last_AI <= 4 & Three$Last_AI > 2, 3,
-#                               ifelse(Three$Last_AI <= 2 & Three$Last_AI > 1, 2, 
-#                                      ifelse(Three$Last_AI == 1, 1, NA)))))
+#  mutate(NumAI = ifelse(Three$NumAI > 4, 4, 
+#                        ifelse(Three$NumAI <= 4 & Three$NumAI > 2, 3,
+#                               ifelse(Three$NumAI <= 2 & Three$NumAI > 1, 2, 
+#                                      ifelse(Three$NumAI == 1, 1, NA)))))
 
 Three.offset <- Three %>%
   mutate(Calving.lastAI = difftime(Last_InsDate, CalvingDate, units = "days"))
 Three.offset$Calving.lastAI <- as.numeric(round(Three.offset$Calving.lastAI, 0))
 summary(Three.offset$Calving.lastAI)
 
-plot(Three.offset$Calving.lastAI, Three.offset$Last_AI)
+plot(Three.offset$Calving.lastAI, Three.offset$NumAI)
 
 boxplot(Three.offset$DaysToFirstIns~Three.offset$FarmNo)
 
-summary(Three.offset$Last_AI)
-var(Three.offset$Last_AI)
+summary(Three.offset$NumAI)
+var(Three.offset$NumAI)
+
+hist(Three$MaxKeto)
 ```
 
 # Research Question: what is the assocation of numbers of AI and ketosis?
 
 # AvgKeto20_100
 ```{r}
-p.mod1 <- glm(Last_AI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
+p.mod1 <- glm(NumAI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
 summary(p.mod1)
 
-qp.mod1 <- glm(Last_AI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = quasipoisson(link = "log"), data = Three)
+qp.mod1 <- glm(NumAI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = quasipoisson(link = "log"), data = Three)
 summary(qp.mod1)
 
 coef1 = coef(p.mod1)
@@ -80,14 +82,14 @@ se.coef2 = se.coef(qp.mod1)
 models.both <- cbind(coef1, se.coef1, coef2, se.coef2, exponent = exp(coef1))
 models.both
 
-nb.mod1 <- glm.nb(Last_AI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three)
+nb.mod1 <- glm.nb(NumAI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), data = Three)
 summary(nb.mod1)
 coef3 = coef(nb.mod1)
 
 ####################
 ##  doesn't work  ##
 ####################
-#nb.mod2 <- glm.nb(Last_AI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason, 
+#nb.mod2 <- glm.nb(NumAI ~ AvgKeto20_atleast10 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason, 
 #                  random = ~ 1|FarmNo,
 #                  data = Three)
 
@@ -95,14 +97,14 @@ coef3 = coef(nb.mod1)
 
 ## lme with random effect
 ```{r}
-mod1.lme <- lme(Last_AI ~ AvgKeto20_100 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason, 
+mod1.lme <- lme(NumAI ~ AvgKeto20_100 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason, 
                 random = ~ 1|FarmNo, 
                 data = Three, 
                 na.action = na.exclude,
                 method = "REML")
 summary(mod1.lme)
 
-mod2.lme <- lme(Last_AI ~ AvgKeto20_100  + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason, 
+mod2.lme <- lme(NumAI ~ AvgKeto20_100  + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason, 
                 random = ~ 1|FarmNo, 
                 data = Three, 
                 na.action = na.exclude,
@@ -113,32 +115,32 @@ summary(mod2.lme)
 ## Poisson regression & Quasi-poisson regression - glm (without random effect)
 ```{r}
 rm(list=ls(pattern="cox."))
-boxplot(Three$Last_AI ~ Three$FarmNo)
-plot(Three$AvgKeto20_atleast10, Three$Last_AI)
+boxplot(Three$NumAI ~ Three$FarmNo)
+plot(Three$AvgKeto20_atleast10, Three$NumAI)
 boxplot(Three$AvgKeto20_atleast10 ~ Three$FarmNo)
 
-qpoi.mod <- glm(Last_AI ~ 1, data = Three, family = quasipoisson(link = "log"))
+qpoi.mod <- glm(NumAI ~ 1, data = Three, family = quasipoisson(link = "log"))
 summary(qpoi.mod)
-poi.mod <- glm(Last_AI ~ 1, data = Three, family = poisson(link = "log"))
+poi.mod <- glm(NumAI ~ 1, data = Three, family = poisson(link = "log"))
 summary(poi.mod)
-ran.poi.mod <- glmer(Last_AI ~ 1 +(1|FarmNo), Three.offset, family = poisson(link = "log"))
+ran.poi.mod <- glmer(NumAI ~ 1 +(1|FarmNo), Three.offset, family = poisson(link = "log"))
 summary(ran.poi.mod)
 
-poi.mod1 <- glm(Last_AI ~ AvgKeto20_100, data = Three.offset, family = poisson(link = "log"))
+poi.mod1 <- glm(NumAI ~ AvgKeto20_100, data = Three.offset, family = poisson(link = "log"))
 summary(poi.mod1)
-qpoi.mod1 <- glm(Last_AI ~ AvgKeto20_100, data = Three.offset, family = quasipoisson(link = "log"))
+qpoi.mod1 <- glm(NumAI ~ AvgKeto20_100, data = Three.offset, family = quasipoisson(link = "log"))
 summary(qpoi.mod1)
-ran.poi.mod1 <- glmer(Last_AI ~ AvgKeto20_100 + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+ran.poi.mod1 <- glmer(NumAI ~ AvgKeto20_100 + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(ran.poi.mod1)
 
-poi.mod2 <- glm(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation), data = Three.offset, family = poisson(link = "log"))
+poi.mod2 <- glm(NumAI ~ AvgKeto20_100 + factor(ad_Lactation), data = Three.offset, family = poisson(link = "log"))
 summary(poi.mod2)
 ## to find out the outliers 
 plot(poi.mod2) 
 ## to find out the influential observations
 influencePlot(poi.mod2)
 
-qpoi.mod2 <- glm(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation), data = Three.offset, family = quasipoisson(link = "log"))
+qpoi.mod2 <- glm(NumAI ~ AvgKeto20_100 + factor(ad_Lactation), data = Three.offset, family = quasipoisson(link = "log"))
 summary(qpoi.mod2)
 # outliers
 plot(qpoi.mod2)
@@ -146,37 +148,37 @@ plot(qpoi.mod2)
 influencePlot(qpoi.mod2)
 
 
-ran.poi.mod2 <- glmer(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) +(1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+ran.poi.mod2 <- glmer(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) +(1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(ran.poi.mod2)
 
-ran.poi.mod3 <- glmer(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+ran.poi.mod3 <- glmer(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(ran.poi.mod3)
 ```
 
 ## Offset - farmsize
 ```{r}
-mod1 <- glm(Last_AI ~ AvgKeto20_100, data = Three, family = poisson(link = "log"))
+mod1 <- glm(NumAI ~ AvgKeto20_100, data = Three, family = poisson(link = "log"))
 summary(mod1)
 
-#mod2 <- glm(Last_AI ~ AvgKeto20_100 + offset(log(CowNo)), data = Three, family = poisson(link = "log"))
+#mod2 <- glm(NumAI ~ AvgKeto20_100 + offset(log(CowNo)), data = Three, family = poisson(link = "log"))
 #(mod2)
 ## This model doesn't mean anything because the outcome is the 'mean numbers of insemination of an individual cow' and should not be divided to farm size -> shouldn't use farm size in offset! 
 
-mod3 <- glmer(Last_AI ~ AvgKeto20_100 + (1|FarmNo), data = Three, family = poisson(link = "log"))
+mod3 <- glmer(NumAI ~ AvgKeto20_100 + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(mod3)
 res3 <- simulateResiduals(mod3)
 plot(res3)
 
-#mod4 <- glmer(Last_AI ~ AvgKeto20_100 + offset(log(CowNo)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+#mod4 <- glmer(NumAI ~ AvgKeto20_100 + offset(log(CowNo)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
 ## This model doesn't mean anything because the outcome is the 'mean numbers of insemination of an individual cow' and should not be divided to farm size -> shouldn't use farm size in offset! 
 
-mod4 <- glmer(Last_AI ~ AvgKeto20_100 + cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod4 <- glmer(NumAI ~ AvgKeto20_100 + cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 # This model estimates the mean numbers of AI within the estimated observation time (per month), with fix average ketosis and fix farm effect (estimate the effect of farm size)
 summary(mod4)
 res4 <- simulateResiduals(mod4)
 plot(res4)
 
-mod5 <- glmer(Last_AI ~ AvgKeto20_100 + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod5 <- glmer(NumAI ~ AvgKeto20_100 + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod5)
 
 
@@ -184,20 +186,20 @@ summary(mod4)
 res4 <- simulateResiduals(mod4)
 plot(res4)
 
-boxplot(Three$AvgKeto20_100 ~ Three$Last_AI)
-boxplot(Three$Last_AI ~ Three$FarmNo)
+boxplot(Three$AvgKeto20_100 ~ Three$NumAI)
+boxplot(Three$NumAI ~ Three$FarmNo)
 boxplot(Three$AvgKeto20_100 ~ Three$FarmNo)
 
-ggplot(data = Three, aes(x = Last_AI, y = AvgKeto20_100)) +
+ggplot(data = Three, aes(x = NumAI, y = AvgKeto20_100)) +
   geom_bar(stat = "identity")
 ```
 
 ## glmer with offset (time from calving to last AI)
 ```{r}
 mean(Three.offset$Calving.lastAI, na.rm = TRUE)
-boxplot(Three.offset$Calving.lastAI~Three.offset$Last_AI)
-Three.offset$Last_AI <- as.factor(Three.offset$Last_AI)
-box_plot <- ggplot(data = Three.offset, aes(x = Last_AI, y = Calving.lastAI)) +
+boxplot(Three.offset$Calving.lastAI~Three.offset$NumAI)
+Three.offset$NumAI <- as.factor(Three.offset$NumAI)
+box_plot <- ggplot(data = Three.offset, aes(x = NumAI, y = Calving.lastAI)) +
   geom_boxplot() +
   geom_jitter(shape = 15, 
               color = "steelblue", 
@@ -207,59 +209,59 @@ box_plot <- ggplot(data = Three.offset, aes(x = Last_AI, y = Calving.lastAI)) +
 box_plot
 
 
-mod1.offset <- glmer(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod1.offset <- glmer(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod1.offset)
 res.mod1.offset <- simulateResiduals(mod1.offset)
 plot(res.mod1.offset)
 
-offset1 <- glmer(Last_AI ~ AvgKeto20_100 + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+offset1 <- glmer(NumAI ~ AvgKeto20_100 + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(offset1)
-offset1.1 <- glmer(Last_AI ~ AvgKeto20_100 + cut(AvgMY60, c(0, 30, 37, 44, 70)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+offset1.1 <- glmer(NumAI ~ AvgKeto20_100 + cut(AvgMY60, c(0, 30, 37, 44, 70)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(offset1.1)
-offset1.2 <- glmer(Last_AI ~ AvgKeto20_100 + I(PeakDFC/30) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+offset1.2 <- glmer(NumAI ~ AvgKeto20_100 + I(PeakDFC/30) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(offset1.2)
 
 
-offset2 <- glmer(Last_AI ~ factor(ad_Lactation) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+offset2 <- glmer(NumAI ~ factor(ad_Lactation) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(offset2)
-offset3 <- glmer(Last_AI ~ CalvingSeason + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+offset3 <- glmer(NumAI ~ CalvingSeason + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(offset3)
-offset4 <- glmer(Last_AI ~ I(PeakDFC/30) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+offset4 <- glmer(NumAI ~ I(PeakDFC/30) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(offset4)
-offset5 <- glmer(Last_AI ~ cut(AvgMY60, c(0, 30, 37, 44, 70)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+offset5 <- glmer(NumAI ~ cut(AvgMY60, c(0, 30, 37, 44, 70)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(offset5)
-offset6 <- glmer(Last_AI ~ cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+offset6 <- glmer(NumAI ~ cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(offset6)
 
 ```
 
 # glmer without offset
 ```{r}
-Three.offset$Last_AI <- as.numeric(Three.offset$Last_AI)
+Three.offset$NumAI <- as.numeric(Three.offset$NumAI)
 
 # Milk - PeakDFC, AvgMY60
-mod1.glmer <- glmer(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod1.glmer <- glmer(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod1.glmer) # AIC = 15996.6
 
-mod1.glmer1 <- glmer(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod1.glmer1 <- glmer(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 
 # Milk - PeakMY
-mod1.glmer.my <- glmer(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + cut(PeakMY, c(0, 43, 52, 60, 110)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod1.glmer.my <- glmer(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + cut(PeakMY, c(0, 43, 52, 60, 110)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod1.glmer.my) # AIC = 16008.8
 
 # Milk - PeakMY, PeakDFC
-mod1.glmer.my.dfc <- glmer(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason +  I(PeakDFC/30) + cut(PeakMY, c(0, 43, 52, 60, 110)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod1.glmer.my.dfc <- glmer(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason +  I(PeakDFC/30) + cut(PeakMY, c(0, 43, 52, 60, 110)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod1.glmer.my.dfc) # AIC = 16006.7
 
 # without lactation groups
-mod1.glmer.nolact <-  glmer(Last_AI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod1.glmer.nolact <-  glmer(NumAI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod1.glmer.nolact) # AIC = 15994.4
 res.mod1.nolact <- simulateResiduals(mod1.glmer.nolact)
 plot(res.mod1.nolact)
 plot(mod1.glmer.nolact)
 
 ?I
-plot(Three.offset$PeakDFC ~ Three.offset$Last_AI)
+plot(Three.offset$PeakDFC ~ Three.offset$NumAI)
 summary(Three.offset$AvgKeto20_100)
 summary(Three.offset$PeakDFC)
 summary(Three.offset$AvgMY60)
@@ -272,24 +274,24 @@ cor(Three.offset$AvgMY60, Three.offset$AvgKeto20_100, use = "complete.obs") # 0.
 prop.table(table(Three.offset$ad_Lactation, cut(Three.offset$AvgMY60, c(0, 30, 37, 44, 70))), 1)
 prop.table(table(Three.offset$ad_Lactation, Three.offset$CalvingSeason))
 
-mod2.glmer <- glmer(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + cut(PeakDFC, c(0, 30, 60, 90, 305)) + I(AvgMY60/5) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod2.glmer <- glmer(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + cut(PeakDFC, c(0, 30, 60, 90, 305)) + I(AvgMY60/5) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 # doesn't work
 
-mod1 <- glmer(Last_AI ~ AvgKeto20_100 + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod1 <- glmer(NumAI ~ AvgKeto20_100 + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod1)
-mod2 <- glmer(Last_AI ~ factor(ad_Lactation) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod2 <- glmer(NumAI ~ factor(ad_Lactation) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod2)
-mod3 <- glmer(Last_AI ~ CalvingSeason + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod3 <- glmer(NumAI ~ CalvingSeason + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod3)
-mod4 <- glmer(Last_AI ~ I(PeakDFC/7) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod4 <- glmer(NumAI ~ I(PeakDFC/7) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod4)
-mod5 <- glmer(Last_AI ~  cut(AvgMY60, c(0, 30, 37, 44, 70)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod5 <- glmer(NumAI ~  cut(AvgMY60, c(0, 30, 37, 44, 70)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod5)
-mod6 <- glmer(Last_AI ~  cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod6 <- glmer(NumAI ~  cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod6)
 
 # without farm size
-mod2.glmer <- glmer(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod2.glmer <- glmer(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod2.glmer) # AIC = 15998.1
 res.mod2.glmer <- simulateResiduals(mod2.glmer)
 plot(res.mod2.glmer) 
@@ -299,65 +301,65 @@ exp(-0.070481)
 ########################################
 ##  lactation as continuous variable  ##
 ########################################
-mod1.glmer1 <- glmer(Last_AI ~ AvgKeto20_100 + Lactation + CalvingSeason + PeakDFC + AvgMY60 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod1.glmer1 <- glmer(NumAI ~ AvgKeto20_100 + Lactation + CalvingSeason + PeakDFC + AvgMY60 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod1.glmer1)
 
-mod2.glmer1 <- glmer(Last_AI ~ AvgKeto20_100  + CalvingSeason + PeakDFC + AvgMY60 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod2.glmer1 <- glmer(NumAI ~ AvgKeto20_100  + CalvingSeason + PeakDFC + AvgMY60 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod2.glmer1)
 
-mod3.glmer1 <- glmer(Last_AI ~ CalvingSeason + PeakDFC + AvgMY60 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod3.glmer1 <- glmer(NumAI ~ CalvingSeason + PeakDFC + AvgMY60 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod3.glmer1)
 #############################################
 #############################################
 
 # -AvgKeto20_100
-mod2.glmer <- glmer(Last_AI ~ factor(ad_Lactation) + CalvingSeason + PeakDFC + AvgMY60 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod2.glmer <- glmer(NumAI ~ factor(ad_Lactation) + CalvingSeason + PeakDFC + AvgMY60 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod2.glmer)
 
 # -CowNo (-farm size)
-mod3.glmer <-  glmer(Last_AI ~ factor(ad_Lactation) + CalvingSeason + PeakDFC + AvgMY60  + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod3.glmer <-  glmer(NumAI ~ factor(ad_Lactation) + CalvingSeason + PeakDFC + AvgMY60  + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod3.glmer)
 
-summary(Three.offset$Last_AI)
+summary(Three.offset$NumAI)
 
 ########################
 ##     Interaction    ##
 ########################
-mod1.int <-  glmer(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + factor(ad_Lactation):AvgKeto20_100 + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod1.int <-  glmer(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + factor(ad_Lactation):AvgKeto20_100 + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 # doesn't work
 ```
 
 ## glmmTMB (negative binominal with random effect)
 ```{r}
-fit1 <- glmmTMB(Last_AI ~ AvgKeto20_100 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+fit1 <- glmmTMB(NumAI ~ AvgKeto20_100 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(fit1)
 res.fit1 <- simulateResiduals(fit1)
 plot(res.fit1)
 
-fit1.nb <- glmmTMB(Last_AI ~ AvgKeto20_100 + (1|FarmNo), data = Three, family = nbinom1) #AIC 15827
-fit1.nb1 <- glmmTMB(Last_AI ~ AvgKeto20_100 + (1|FarmNo), data = Three, family = nbinom2) #AIC 15791
+fit1.nb <- glmmTMB(NumAI ~ AvgKeto20_100 + (1|FarmNo), data = Three, family = nbinom1) #AIC 15827
+fit1.nb1 <- glmmTMB(NumAI ~ AvgKeto20_100 + (1|FarmNo), data = Three, family = nbinom2) #AIC 15791
 anova(fit1.nb, fit1.nb1)
 summary(fit1.nb1)
 
-fit2.nb <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + (1|FarmNo), data = Three, family = nbinom1)
-fit2.nb1 <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + (1|FarmNo), data = Three, family = nbinom2)
+fit2.nb <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + (1|FarmNo), data = Three, family = nbinom1)
+fit2.nb1 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + (1|FarmNo), data = Three, family = nbinom2)
 summary(fit2.nb) #AIC 15820.6
 summary(fit2.nb1) #AIC 15783.7
 
-fit3.nb <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + (1|FarmNo), data = Three, family = nbinom1)
-fit3.nb1 <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + (1|FarmNo), data = Three, family = nbinom2)
+fit3.nb <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + (1|FarmNo), data = Three, family = nbinom1)
+fit3.nb1 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + (1|FarmNo), data = Three, family = nbinom2)
 summary(fit3.nb) #AIC 15813.7
 summary(fit3.nb1) #AIC 15778.6
 
-#fit4.nb <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + AvgMY60 + (1|FarmNo), data = Three, family = nbinom1)
-fit4.nb1 <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + AvgMY60 + (1|FarmNo), data = Three, family = nbinom2)
+#fit4.nb <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + AvgMY60 + (1|FarmNo), data = Three, family = nbinom1)
+fit4.nb1 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + AvgMY60 + (1|FarmNo), data = Three, family = nbinom2)
 #summary(fit4.nb) #AIC 15754.3
 summary(fit4.nb1) #AIC 15718.1
 res.fit4 <- simulateResiduals(fit4.nb1)
 plot(res.fit4)
 
-#fit5.nb <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + PeakMY + AvgMY60 + (1|FarmNo), data = Three, family = nbinom1)
-fit5.nb1 <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + PeakMY + AvgMY60 + (1|FarmNo), data = Three, family = nbinom2)
+#fit5.nb <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + PeakMY + AvgMY60 + (1|FarmNo), data = Three, family = nbinom1)
+fit5.nb1 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + PeakMY + AvgMY60 + (1|FarmNo), data = Three, family = nbinom2)
 #summary(fit5.nb) # AIC 15756.1, PeakMY IS NOT SIGNIFICANT
 summary(fit5.nb1) # AIC 15719.1, PeakMY IS NOT SIGNIFICANT
 
@@ -365,10 +367,10 @@ summary(fit5.nb1) # AIC 15719.1, PeakMY IS NOT SIGNIFICANT
 ##  PeakDFC and AvgMY60 are the best combination  ##
 ####################################################
 
-#fit6.nb <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data = Three, family = nbinom1)
-fit6.nb1 <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data = Three, family = nbinom2)
-fit6.nb3 <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data = Three, family = poisson(link = "log"))
-fit6.nb4 <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60, data = Three, family = poisson(link = "log"))
+#fit6.nb <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data = Three, family = nbinom1)
+fit6.nb1 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data = Three, family = nbinom2)
+fit6.nb3 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data = Three, family = poisson(link = "log"))
+fit6.nb4 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60, data = Three, family = poisson(link = "log"))
 #summary(fit6.nb) #AIC 15749.2
 summary(fit6.nb1) #AIC 15712.7
 summary(fit6.nb3) #AIC 15976.9
@@ -383,15 +385,15 @@ residuals(res.fit6, quantileFunction = qnorm, outlierValues = c(-2, 2))
 #  Poisson regression  #
 ########################
 
-mod1.glmer.nolact <-  glmer(Last_AI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod1.glmer.nolact <-  glmer(NumAI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod1.glmer.nolact) #AIC 15994.4
 
 plot(mod1.glmer.nolact)
 
 
-#fit7.nb <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = nbinom1)
-fit7.nb1 <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = nbinom2)
-fit7.nb3 <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = poisson(link = "log"))
+#fit7.nb <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = nbinom1)
+fit7.nb1 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = nbinom2)
+fit7.nb3 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = poisson(link = "log"))
 #summary(fit7.nb) #AIC 15767.6, Lactation, PeakDFC all become not significant
 summary(fit7.nb1) #AIC 15727.3, Lactation, CalvingSeason, PeakDFC all become not significant
 summary(fit7.nb3) #AIC 15999.1, Lactation is not significant
@@ -402,9 +404,9 @@ plot(res.fit7)
 ##  AvgMY60 is a continuous variable  ##
 ########################################
 
-#fit8.nb <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500))  + (1|FarmNo), data = Three, family = nbinom1)
-fit8.nb1 <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = nbinom2)
-fit8.nb3 <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+#fit8.nb <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500))  + (1|FarmNo), data = Three, family = nbinom1)
+fit8.nb1 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = nbinom2)
+fit8.nb3 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
 #summary(fit8.nb) #AIC 15747.1
 summary(fit8.nb1) #AIC 15711.3
 summary(fit8.nb3) #AIC 15975.6
@@ -415,15 +417,17 @@ plot(res.fit8)
 boxplot(residuals(fit8.nb1, "deviance"))$out  #doesn't work
 max(resid(fit8.nb1, "deviance"))$out          #doesn't work
 
-# without lactation
-fit8.nb2 <- glmmTMB(Last_AI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = nbinom2)
+#########################
+##  without lactation  ##
+#########################
+fit8.nb2 <- glmmTMB(NumAI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = nbinom2)
 summary(fit8.nb2) #AIC 15710.0
 res.fit8.nb2 <- simulateResiduals(fit8.nb2)
 plot(res.fit8.nb2)
 
-fit8.poisson <- glmmTMB(Last_AI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+fit8.poisson <- glmmTMB(NumAI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(fit8.fit8.poisson) #AIC 15976.2
-anova(fit8.nb3, fit8.poisson)
+anova(fit8.nb2, fit8.poisson)
 res.fit8.poisson <- simulateResiduals(fit8.poisson)
 plot(res.fit8.poisson)
 
@@ -431,36 +435,42 @@ plot(res.fit8.poisson)
 ##  Categorized AvgMY60  ##
 ###########################
 
-#fit9.nb <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500))  + (1|FarmNo), data = Three, family = nbinom1)
-fit9.nb1 <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = nbinom2)
+#fit9.nb <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500))  + (1|FarmNo), data = Three, family = nbinom1)
+fit9.nb1 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = nbinom2)
 #summary(fit9.nb) #AIC 15762.5, Lactation is no longer significant!!
 summary(fit9.nb1) #AIC 15727.2, Lactation is no longer significant!!
 
-fit9.poisson <- glmmTMB(Last_AI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+fit9.poisson <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(fit9.poisson) #AIC 15996.6, NO BETTER THAN MODEL fit8.poisson
 
 #######################################################
 ##  Categorized AvgMY60 and model without Lactation  ##
 #######################################################
 
-#fit10.nb <- glmmTMB(Last_AI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500))  + (1|FarmNo), data = Three, family = nbinom1)
-fit10.nb1 <- glmmTMB(Last_AI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = nbinom2)
+#fit10.nb <- glmmTMB(NumAI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500))  + (1|FarmNo), data = Three, family = nbinom1)
+fit10.nb1 <- glmmTMB(NumAI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = nbinom2)
 #summary(fit10.nb) #AIC 15759.2
 summary(fit10.nb1) #AIC 15723.8
 res.fit10 <- simulateResiduals(fit10.nb1)
 plot(res.fit10)
 
-fit10.poisson <- glmmTMB(Last_AI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+fit10.poisson <- glmmTMB(NumAI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(fit10.poisson) #AIC 15994.4, NO BETTER THAN MODEL fit9.poisson
+
+######################################
+##  fit8.poisson is the best model  ##
+######################################
+res.fit8.poisson <- simulateResiduals(fit8.poisson)
+plot(res.fit8.poisson)
 
 ```
 
 ## Offset - time from calving to last AI
 ```{r}
-mod5 <- glm(Last_AI ~ AvgKeto20_100 + offset(log(Calving.lastAI)), data = Three.offset, family = poisson(link = "log"))
+mod5 <- glm(NumAI ~ AvgKeto20_100 + offset(log(Calving.lastAI)), data = Three.offset, family = poisson(link = "log"))
 summary(mod5)
 
-mod6 <- glmer(Last_AI ~ AvgKeto20_100 + offset(log(Calving.lastAI)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod6 <- glmer(NumAI ~ AvgKeto20_100 + offset(log(Calving.lastAI)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod6)
 
 summary(mod6)
@@ -473,21 +483,21 @@ drop1(mod6)
 
 ## glmer 
 ```{r}
-poi.avgketo20 <- glmer(Last_AI~ AvgKeto20_atleast10 + (1|FarmNo), 
+poi.avgketo20 <- glmer(NumAI~ AvgKeto20_atleast10 + (1|FarmNo), 
                       data = Three, family = poisson(link = "log"))
 summary(poi.avgketo20)
 anova(poi.mod, poi.avgketo20, test = "Chisq")
 drop1(poi.avgketo20)
 
-poi.avgketo20.1 <- glmer(Last_AI~ AvgKeto20_atleast10 + (FarmNo), 
+poi.avgketo20.1 <- glmer(NumAI~ AvgKeto20_atleast10 + (FarmNo), 
                       data = Three, family = poisson(link = "log"))
 summary(poi.avgketo20.1)
 
-poi.avgketo20.cate <- glmer(Last_AI~ cut(AvgKeto20_atleast10, c(0, 0.04, 0.07, 0.1, 0.5)) + (1 | FarmNo), 
+poi.avgketo20.cate <- glmer(NumAI~ cut(AvgKeto20_atleast10, c(0, 0.04, 0.07, 0.1, 0.5)) + (1 | FarmNo), 
                       data = Three, family = poisson(link = "log"))
 summary(poi.avgketo20.cate)
 
-poi.avgketo20.100 <- glmer(Last_AI~ AvgKeto20_100 + (1|FarmNo), 
+poi.avgketo20.100 <- glmer(NumAI~ AvgKeto20_100 + (1|FarmNo), 
                       data = Three, family = poisson(link = "log"))
 summary(poi.avgketo20.100)
 
@@ -508,42 +518,42 @@ ggplot(data=Three, aes(x=factor(KetoDur20)))+
   ylab("#cows")
 
 Three$KetoDur20 <- as.numeric(Three$KetoDur20)
-summary(Three$Last_AI)
-boxplot(Three$Last_AI ~ Three$FarmNo)
-boxplot(Three$KetoDur20 ~ Three$Last_AI)
+summary(Three$NumAI)
+boxplot(Three$NumAI ~ Three$FarmNo)
+boxplot(Three$KetoDur20 ~ Three$NumAI)
 boxplot(Three$KetoDur20 ~ Three$FarmNo)
 ```
 
 ## glm
 ```{r}
-poi.mod <- glm(Last_AI ~ 1, data = Three, family = poisson(link = "log"))
+poi.mod <- glm(NumAI ~ 1, data = Three, family = poisson(link = "log"))
 summary(poi.mod)
 
-poi.mod1 <- glm(Last_AI ~ KetoDur20, data = Three, family = poisson(link = "log"))
+poi.mod1 <- glm(NumAI ~ KetoDur20, data = Three, family = poisson(link = "log"))
 summary(poi.mod1)
 
-p.mod <- glm(Last_AI ~ KetoDur20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
+p.mod <- glm(NumAI ~ KetoDur20 + factor(ad_Lactation) + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three)
 summary(p.mod)
 #plot(p.mod)
 
-p.mod_no_Lact <- glm(Last_AI ~ KetoDur20 + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three) 
+p.mod_no_Lact <- glm(NumAI ~ KetoDur20 + PeakDFC + AvgMY60 + CalvingSeason + factor(FarmNo), family = poisson(link = "log"), data = Three) 
 summary(p.mod_no_Lact)
 #plot(p.mod_no_Lact)
 ```
 
 ## Offset - farmsize
 ```{r}
-mod1 <- glm(Last_AI ~ KetoDur20, data = Three, family = poisson(link = "log"))
+mod1 <- glm(NumAI ~ KetoDur20, data = Three, family = poisson(link = "log"))
 summary(mod1)
 
-#mod2 <- glm(Last_AI ~ KetoDur20 + offset(log(CowNo)), data = Three, family = poisson(link = "log"))
+#mod2 <- glm(NumAI ~ KetoDur20 + offset(log(CowNo)), data = Three, family = poisson(link = "log"))
 #summary(mod2)
 ## This model doesn't mean anything because the outcome is the 'mean numbers of insemination of an individual cow' and should not be divided to farm size
 
-mod3 <- glmer(Last_AI ~ KetoDur20 + (1|FarmNo), data = Three, family = poisson(link = "log"))
+mod3 <- glmer(NumAI ~ KetoDur20 + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(mod3)
 
-#mod4 <- glmer(Last_AI ~ KetoDur20 + offset(log(CowNo)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+#mod4 <- glmer(NumAI ~ KetoDur20 + offset(log(CowNo)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
 ## This model doesn't mean anything because the outcome is the 'mean numbers of insemination of an individual cow' and should not be divided to farm size -> shouldn't use farm size in offset! 
 
 anova(mod1, mod2, test = "Chisq")
@@ -557,10 +567,10 @@ plot(res3)
 
 ## Offset - time from calving to last AI
 ```{r}
-mod5 <- glm(Last_AI ~ KetoDur20 + offset(log(Calving.lastAI)), data = Three.offset, family = poisson(link = "log"))
+mod5 <- glm(NumAI ~ KetoDur20 + offset(log(Calving.lastAI)), data = Three.offset, family = poisson(link = "log"))
 summary(mod5)
 
-mod6 <- glmer(Last_AI ~ KetoDur20 + offset(log(Calving.lastAI)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
+mod6 <- glmer(NumAI ~ KetoDur20 + offset(log(Calving.lastAI)) + (1|FarmNo), data = Three.offset, family = poisson(link = "log"))
 summary(mod6)
 
 anova(mod5, mod6)
@@ -590,20 +600,20 @@ summary(as.factor(Three.count$HighKeto20))
 ## discriptive + model
 ```{r}
 Three.count$HighKeto20 <- as.factor(Three.count$HighKeto20)
-Three.count$Last_AI <- as.numeric(Three.count$Last_AI)
-count1.glmer <- glmer(Last_AI ~ HighKeto20 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.count, family = poisson(link = "log"))
+Three.count$NumAI <- as.numeric(Three.count$NumAI)
+count1.glmer <- glmer(NumAI ~ HighKeto20 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data = Three.count, family = poisson(link = "log"))
 summary(count1.glmer)
 
-count2.glmer <- glmer(Last_AI ~ HighKeto20 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) +(1|FarmNo), data = Three.count, family = poisson(link = "log"))
+count2.glmer <- glmer(NumAI ~ HighKeto20 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) +(1|FarmNo), data = Three.count, family = poisson(link = "log"))
 summary(count2.glmer)
 
-count3.glmer <- glmer(Last_AI ~ HighKeto20 + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) +(1|FarmNo), data = Three.count, family = poisson(link = "log"))
+count3.glmer <- glmer(NumAI ~ HighKeto20 + CalvingSeason + I(PeakDFC/30) + cut(AvgMY60, c(0, 30, 37, 44, 70)) +(1|FarmNo), data = Three.count, family = poisson(link = "log"))
 summary(count3.glmer)
 res3 <- simulateResiduals(count3.glmer)
 plot(res3)
 
 ?I
-plot(Three.count$HighKeto20, Three.count$Last_AI)
+plot(Three.count$HighKeto20, Three.count$NumAI)
 summary(Three.count$nHighKeto20)
 summary(Three.count$PeakDFC)
 summary(Three.count$AvgMY60)
@@ -615,13 +625,13 @@ cor(Three.count$AvgMY60, Three.count$nHighKeto20, use = "complete.obs") # 0.15
 prop.table(table(Three.count$ad_Lactation, cut(Three.count$AvgMY60, c(0, 30, 37, 44, 70))), 1)
 prop.table(table(Three.count$ad_Lactation, Three.count$HighKeto20))
 cor(Three$ad_Lactation, Three$nHighKeto20)
-cor(Three$Last_AI, Three$nHighKeto20)
+cor(Three$NumAI, Three$nHighKeto20)
 
-count1 <- glmer(Last_AI ~ HighKeto20 + (1|FarmNo), data = Three.count, family = poisson(link = "log"))
+count1 <- glmer(NumAI ~ HighKeto20 + (1|FarmNo), data = Three.count, family = poisson(link = "log"))
 summary(count1)
-count2 <- glmer(Last_AI ~ HighKeto20 + factor(ad_Lactation) + (1|FarmNo), data = Three.count, family = poisson(link = "log"))
+count2 <- glmer(NumAI ~ HighKeto20 + factor(ad_Lactation) + (1|FarmNo), data = Three.count, family = poisson(link = "log"))
 summary(count2)
-count3 <- glmer(Last_AI ~ HighKeto20 + factor(ad_Lactation) + CalvingSeason + (1|FarmNo), data = Three.count, family = poisson(link = "log"))
+count3 <- glmer(NumAI ~ HighKeto20 + factor(ad_Lactation) + CalvingSeason + (1|FarmNo), data = Three.count, family = poisson(link = "log"))
 summary(count3)
 ```
 
@@ -629,15 +639,15 @@ summary(count3)
 # Extra AI
 ```{r}
 extra <- Three.offset %>%
-  filter(Last_AI >= 1)
-mean(extra$Last_AI)
-var(extra$Last_AI)
-table(extra$Last_AI)
+  filter(NumAI >= 1)
+mean(extra$NumAI)
+var(extra$NumAI)
+table(extra$NumAI)
 
-mod.extra <- glmer(Last_AI ~ AvgKeto20_100 + cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = extra, family = poisson(link = "log"))
+mod.extra <- glmer(NumAI ~ AvgKeto20_100 + cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = extra, family = poisson(link = "log"))
 summary(mod.extra)
 res.extra <- simulateResiduals(mod.extra)
 plot(res.extra)
 
-mod.extra2 <- glmer(Last_AI ~ AvgKeto20_100)
+mod.extra2 <- glmer(NumAI ~ AvgKeto20_100)
 ```
