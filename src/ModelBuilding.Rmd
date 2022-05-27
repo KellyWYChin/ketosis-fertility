@@ -148,8 +148,8 @@ ggplot(data=survival, aes(x=DaysToFirstHeat))+
   geom_histogram(breaks=seq(0, 250, by=5),
                  fill="lightblue")+
   #facet_wrap(Three$FarmNo) +
-  ggtitle("Days from Calving to First Heat")+
-  xlab("DFC")+
+  ggtitle("Time from Calving to First Heat")+
+  xlab("day")+
   ylab("#cows")+
   theme_classic()
 summary(survival$DaysToFirstHeat)
@@ -158,11 +158,11 @@ sd(survival$DaysToFirstHeat)
 
 # BOXPLOT- DaysToFirstHeat vs. FarmNo
 plot(survival$DaysToFirstHeat ~ survival$AvgKeto20_100)
-boxplot(survival$DaysToFirstHeat ~ survival$FarmNo, xlab = "Farm ID", ylab = "Days from calving to first heat")
+boxplot(survival$DaysToFirstHeat ~ survival$FarmNo, xlab = "Farm ID", ylab = "Time from calving to first heat")
 ggplot(data = survival, aes(x = FarmNo, y = DaysToFirstHeat)) +
   geom_boxplot(outlier.color = "red") + 
   theme_classic() +
-  labs(x = "Farm ID", y = "Day from calving to first heat (days)") +
+  labs(x = "Farm ID", y = "Days from calving to first heat") +
   theme(axis.text.x = element_text(angle = 90))
   
 # BOXPLOT- AvgKeto20_100 vs. FarmNo
@@ -178,7 +178,7 @@ boxplot(survival$DaysToFirstHeat ~ survival$ad_Lactation)
 ggplot(data = survival, aes(x = ad_Lactation, y = DaysToFirstHeat)) +
   geom_boxplot(outlier.color = "red") + 
   theme_classic() +
-  labs(x = "Parity", y = "Day from calving to first heat (days)")
+  labs(x = "Parity", y = "Days from calving to first heat")
 ```
 
 # Survival curves (DaysToFirstHeat)

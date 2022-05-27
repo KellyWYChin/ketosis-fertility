@@ -890,18 +890,18 @@ Three$Lactation <- as.factor(Three$Lactation)
 ggplot(data=Three, aes(x=factor(Lactation)))+
   geom_bar(stat="count", fill="skyblue") +
   stat_count(geom="text", size=3, aes(label=..count..)) +
-  ggtitle("Lactation Distribution") +
+  ggtitle("Parity Distribution") +
   theme_classic() +
-  xlab("Lactation") +
+  xlab("Parity") +
   ylab("#cows")
 
 Three$ad_Lactation <- as.factor(Three$ad_Lactation)
 ggplot(data=Three, aes(x=factor(ad_Lactation)))+
   geom_bar(stat="count", fill="skyblue") +
   stat_count(geom="text", size=5, aes(label=..count..)) +
-  ggtitle("Number of Cows in 4 Lactation Categories") +
+  ggtitle("Number of Cows in 4 Parity Categories") +
   theme_classic() +
-  xlab("Lactation, 4 means 4+") +
+  xlab("Parity, 4 means 4+") +
   ylab("#cows")
 
 # Culled cows during the cohort
@@ -911,9 +911,10 @@ ggplot(data=Three, aes(x=cull.calving)) +
                  fill="red") +
   #facet_wrap(Three$FarmNo) +
   ggtitle("Days from Calving to Culled") +
-  xlab("DFC") +
+  xlab("DIM") +
   ylab("#cows") +
   theme_classic()
+
 # Average DFC that cows were culled
 mean(Three$cull.calving, na.rm = TRUE)
 quantile(Three$cull.calving, c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
@@ -924,7 +925,7 @@ ggplot(data=Three, aes(x=DaysToCLA)) +
                  fill="green") +
   #facet_wrap(Three$FarmNo) +
   ggtitle("Days from Calving to First Cycle") +
-  xlab("DFC") +
+  xlab("DIM") +
   ylab("#cows") +
   theme_classic()
 # Average DaysToCLA
@@ -937,7 +938,7 @@ ggplot(data=Three, aes(x=DaysToFirstHeat)) +
   geom_histogram(breaks=seq(0, 250, by=5), fill="lightgreen") +
   #facet_wrap(Three$FarmNo) +
   ggtitle("Days from Calving to First Heat") +
-  xlab("DFC") +
+  xlab("DIM") +
   ylab("#cows") +
   theme_classic()
 
@@ -953,7 +954,7 @@ ggplot(data=Three, aes(x=DaysToFirstIns)) +
                  fill="green") +
   #facet_wrap(Three$FarmNo) +
   ggtitle("Days from Calving to First Insemination") +
-  xlab("DFC") +
+  xlab("DIM") +
   ylab("#cows") +
   theme_classic()
 # Average DaysToFirstIns
@@ -965,21 +966,21 @@ ggplot(data=Three, aes(x=DaysToLastIns)) +
                  fill="purple") +
   #facet_wrap(Three$FarmNo) +
   ggtitle("Days from Calving to Last Insemination") +
-  xlab("DFC") +
+  xlab("DIM") +
   ylab("#cows") +
   theme_classic()
 
 #Number of AIs
-Three$Last_AI <- as.factor(Three$Last_AI)
-ggplot(data=Three, aes(x=factor(Last_AI)))+
+Three$NumAI <- as.factor(Three$NumAI)
+ggplot(data=Three, aes(x=factor(NumAI)))+
   geom_bar(stat="count", fill="pink") +
   stat_count(geom="text", size=3, aes(label=..count..)) +
   ggtitle("Number of AI Distribution") +
   theme_classic() +
-  xlab("#AI") +
+  xlab("number of AI") +
   ylab("#cows")
-Three$Last_AI <- as.numeric(Three$Last_AI)
-summary(Three$Last_AI)
+Three$NumAI <- as.numeric(Three$NumAI)
+summary(Three$NumAI)
 ```
 
 ## Milk parameters
@@ -991,16 +992,16 @@ ggplot(data=Three, aes(x=PeakDFC)) +
   geom_histogram(breaks=seq(0, 305, by=20),
                  fill="royalblue1") +
   facet_wrap(Three$ad_Lactation, ncol = 4) +
-  ggtitle("DFC where highest peak yield was achieved") +
-  xlab("DFC") +
+  ggtitle("DIM when highest peak yield was achieved") +
+  xlab("DIM") +
   ylab("#cows") +
   theme_classic()
 
 ggplot(data=Three, aes(x=PeakDFC)) +
   geom_histogram(breaks=seq(0, 305, by=10),
                  fill="royalblue1") +
-  ggtitle("DFC where highest peak yield was achieved") +
-  xlab("DFC") +
+  ggtitle("DIM when highest peak yield was achieved") +
+  xlab("DIM") +
   ylab("#cows") +
   theme_classic()
 
@@ -1010,7 +1011,7 @@ ggplot(data=Three, aes(x=PeakMY)) +
   geom_histogram(breaks=seq(0, 110, by=3),
                  fill="darkblue") +
   ggtitle("Peak milk yield") +
-  xlab("DFC") +
+  xlab("DIM") +
   ylab("#cows") +
   theme_classic()
 
@@ -1019,7 +1020,7 @@ summary(Three$AvgMY20)
 ggplot(data=Three, aes(x=AvgMY20)) +
   geom_histogram(breaks=seq(0, 60, by=3),
                  fill="blue", alpha = 0.2) +
-  ggtitle("Average milk yield within 20 DFC") +
+  ggtitle("Average milk yield within 20 DIM") +
   xlab("Milk yield (kg)") +
   ylab("#cows") +
   theme_classic()
@@ -1030,7 +1031,7 @@ ggplot(data=Three, aes(x=AvgMY20)) +
   geom_histogram(binwidth = bin, alpha = 0.5) +
   facet_wrap(Three$ad_Lactation, ncol = 4) +
   #geom_vline(aes(xintercept = mean(AvgMY20, na.rm = TRUE)), col = "red") +
-  ggtitle("Average milk yield within 20 DFC") +
+  ggtitle("Average milk yield within 20 DIM") +
   xlab("Milk yield (kg)") +
   ylab("#cows") +
   theme_classic() 
@@ -1055,7 +1056,7 @@ summary(Three$SumMY20)
 ggplot(data=Three, aes(x=SumMY20)) +
   geom_histogram(breaks=seq(100, 1220, by=50),
                  fill="blue", alpha = 0.2) +
-  ggtitle("Cumulative milk yield within 20 DFC") +
+  ggtitle("Cumulative milk yield within 20 DIM") +
   xlab("Milk yield (kg)") +
   ylab("#cows") +
   theme_classic()
@@ -1065,7 +1066,7 @@ ggplot(data=Three, aes(x=SumMY20)) +
   geom_density(aes(y = ..count.. * bin), fill = "blue", alpha = 0.2, col = NA) +
   geom_histogram(binwidth = bin, alpha = 0.5) +
   facet_wrap(Three$ad_Lactation, ncol = 4) +
-  ggtitle("Cumulative milk yield within 20 DFC") +
+  ggtitle("Cumulative milk yield within 20 DIM") +
   xlab("Cumulative milk yield (kg)") +
   ylab("#cows") +
   theme_classic() +
@@ -1081,7 +1082,7 @@ summary(Three$AvgMY60)
 ggplot(data=Three, aes(x=AvgMY60)) +
   geom_histogram(breaks=seq(0, 70, by=3),
                  fill="blue", alpha = 0.2) +
-  ggtitle("Average milk yield within 60 DFC") +
+  ggtitle("Average milk yield within 60 DIM") +
   xlab("Milk yield (kg)") +
   ylab("#cows") +
   theme_classic()
@@ -1092,7 +1093,7 @@ ggplot(data=Three, aes(x=AvgMY60)) +
   geom_histogram(binwidth = bin, alpha = 0.5) +
   facet_wrap(Three$ad_Lactation, ncol = 4) +
   #geom_vline(aes(xintercept = mean(AvgMY60, na.rm = TRUE)), col = "red") +
-  ggtitle("Average milk yield within 60 DFC") +
+  ggtitle("Average milk yield within 60 DIM") +
   xlab("Milk yield (kg)") +
   ylab("#cows") +
   theme_classic() 
@@ -1107,7 +1108,7 @@ summary(Three$SumMY60)
 ggplot(data=Three, aes(x=SumMY60)) +
   geom_histogram(breaks=seq(330, 4400, by=100),
                  fill="blue", alpha = 0.2) +
-  ggtitle("Cumulative milk yield within 60 DFC") +
+  ggtitle("Cumulative milk yield within 60 DIM") +
   xlab("Milk yield (kg)") +
   ylab("#cows") +
   theme_classic()
@@ -1117,7 +1118,7 @@ ggplot(data=Three, aes(x=SumMY60)) +
   geom_density(aes(y = ..count.. * bin), fill = "blue", alpha = 0.2, col = NA) +
   geom_histogram(binwidth = bin, alpha = 0.5) +
   facet_wrap(Three$ad_Lactation, ncol = 4) +
-  ggtitle("Cumulative milk yield within 60 DFC") +
+  ggtitle("Cumulative milk yield within 60 DIM") +
   xlab("Cumulative milk yield (kg)") +
   ylab("#cows") +
   theme_classic() +
