@@ -390,15 +390,21 @@ summary(mod1.glmer.nolact) #AIC 15994.4
 
 plot(mod1.glmer.nolact)
 
+###############################
+##  use PeakMY (not AvgMY)   ##
+###############################
 
 #fit7.nb <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = nbinom1)
 fit7.nb1 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = nbinom2)
-fit7.nb3 <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = poisson(link = "log"))
+fit7.poisson <- glmmTMB(NumAI ~ AvgKeto20_100 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = poisson(link = "log"))
 #summary(fit7.nb) #AIC 15767.6, Lactation, PeakDFC all become not significant
 summary(fit7.nb1) #AIC 15727.3, Lactation, CalvingSeason, PeakDFC all become not significant
-summary(fit7.nb3) #AIC 15999.1, Lactation is not significant
+summary(fit7.poisson) #AIC 15999.1, Lactation is not significant
 res.fit7 <- simulateResiduals(fit7.nb1)
 plot(res.fit7)
+
+fit7.poisson2 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDFC60 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(fit7.poisson2) #AIC 15986.7, Lactation is not significant
 
 ########################################
 ##  AvgMY60 is a continuous variable  ##
@@ -426,10 +432,35 @@ res.fit8.nb2 <- simulateResiduals(fit8.nb2)
 plot(res.fit8.nb2)
 
 fit8.poisson <- glmmTMB(NumAI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
-summary(fit8.fit8.poisson) #AIC 15976.2
+summary(fit8.poisson) #AIC 15976.2
 anova(fit8.nb2, fit8.poisson)
 res.fit8.poisson <- simulateResiduals(fit8.poisson)
 plot(res.fit8.poisson)
+
+# add MaxKetoDFC60 (no lactation)
+fit8.poisson2 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDFC60 + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(fit8.poisson2) #AIC 15963.7
+anova(fit8.poisson, fit8.poisson2)
+
+# add Lactation (has everything)
+fit8.poisson3 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDFC60 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(fit8.poisson3) #AIC 15962.9
+
+anova(fit8.poisson2, fit8.poisson3) # model fit8.poisson2 and fit8.poisson3 are similar
+anova(fit7.poisson2, fit8.poisson3) # model fit8.poisson3 is better than model fit7.poisson (AvgMY60 is better than PeakMY)
+
+# remove CalvingSeason (has lactation)
+fit8.poisson4 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDFC60 + factor(ad_Lactation) + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(fit8.poisson4) #AIC 15967.7
+anova(fit8.poisson2, fit8.poisson4) # model fit8.poisson2 and fit8.poisson4 are similar
+anova(fit8.poisson3, fit8.poisson4) # model fit8.poisson3 is slightly better than model fit8.poisson4
+
+# lactation become continuous variable -> less significant
+fit8.poisson5 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDFC60 + Lactation + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(fit8.poisson5)
+
+## TODO
+### consider not to have lactation in my model!!
 
 ###########################
 ##  Categorized AvgMY60  ##
@@ -458,10 +489,10 @@ fit10.poisson <- glmmTMB(NumAI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + 
 summary(fit10.poisson) #AIC 15994.4, NO BETTER THAN MODEL fit9.poisson
 
 ######################################
-##  fit8.poisson is the best model  ##
+##  fit8.poisson2 is the best model  ##
 ######################################
-res.fit8.poisson <- simulateResiduals(fit8.poisson)
-plot(res.fit8.poisson)
+res.fit8.poisson2 <- simulateResiduals(fit8.poisson2)
+plot(res.fit8.poisson2)
 
 ```
 

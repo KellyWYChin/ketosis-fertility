@@ -984,7 +984,7 @@ summary(Three$NumAI)
 ```
 
 ## Milk parameters
-# Distribution - Univariable
+### Distribution - Univariable
 ```{r}
 ## PeakDFC
 summary(Three$PeakDFC)
@@ -1142,8 +1142,8 @@ summary(Three$nHighKeto20)
 
 plot(Three$AvgKeto20_atleast10, Three$ad_Lactation, 
      main = "Scatterplot of AvgKeto20 and lactation groups", 
-     ylab = "Lactation groups",
-     xlab = "Average milk BHB in 20 DFC (mmol/L)", pch = 19)
+     ylab = "Parity groups",
+     xlab = "Average milk BHB in 20 DIM (mmol/L)", pch = 19)
 abline(v = 0.08, col = "red")
 describe.by(Three$ad_Lactation, Three$AvgKeto20_atleast10)
 
@@ -1151,7 +1151,8 @@ summary(Three$MaxKetoDFC20)
 ggplot(data=Three, aes(x=MaxKetoDFC20)) +
   geom_histogram(breaks=seq(0, 20, by=0.5),
                  fill="blue", alpha = 0.3) +
-  ggtitle("DFC when milk BHB reached the max within 20 DFC") +
+  ggtitle("DIM when milk BHB reached the max within 20 DIM") +
+  stat_count(geom="text", size=3, aes(label=..count..)) +
   xlab("day") +
   ylab("#cows") +
   theme_classic()
@@ -1160,9 +1161,19 @@ summary(Three$MaxKetoDFC60)
 ggplot(data=Three, aes(x=MaxKetoDFC60)) +
   geom_histogram(breaks=seq(0, 60, by=0.5),
                  fill="blue", alpha = 0.3) +
-  ggtitle("DFC when milk BHB reached the max within 20 DFC") +
+  ggtitle("DIM when milk BHB reached the max within 60 DIM") +
+  stat_count(geom="text", size=3, aes(label=..count..)) +
   xlab("day") +
   ylab("#cows") +
   theme_classic()
+
+# how many cows got their max within 20 days and how many cows got their max later? (percentage)
+summary(Three$MaxKetoDFC60)
+Three$MaxKetoD <- ifelse(Three$MaxKetoDFC60 <= 20, 1, 0)
+sum(Three$MaxKetoD)/4041 #47% (1907/4041) cows had their max value within 20 days
+
+# how many cows got their max within 20 days and the max value was over 0.08?
+Three$keto20 <- ifelse(Three$MaxKetoD == 1 & Three$MaxKeto20 >= 0.08, 1, 0)
+sum(Three$keto20)/sum(Three$MaxKetoD) #75% (1427/1907) were ketotic cows 
 ```
 

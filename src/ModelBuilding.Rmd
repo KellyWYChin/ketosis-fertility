@@ -426,10 +426,13 @@ cox2
 anova(cox1, cox2)
 
 drop1(cox2) # model 2 without dropping any parameter is the best
-MASS::stepAIC(cox2)
+MASS::stepAIC(cox2) 
 
 plot(survival$PeakMY, survival$AvgMY60)
 cor(survival$PeakMY, survival$AvgMY60) # 0.9, highly correlated variables
+# CAN ONLY CHOOSE ONE VARIABLE
+
+cor(survival$AvgKeto20_100, survival$MaxKetoDFC60) # -0.169
 
 # change AvgMY60 to PeakDFC
 cox3 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + PeakMY + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
@@ -450,15 +453,31 @@ anova(cox3, cox4) # model 3 is slightly better than model 4
 # only use AvgMY60
 cox5 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
 cox5 # AvgMY60 is not significant in the model, can be removed
+
+# put MaxKetoDFC60 into the model
+cox6 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100 + MaxKetoDFC60 + ad_Lactation + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
+cox6
+
+# remove AvgMY60
+cox7 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100 + MaxKetoDFC60 + ad_Lactation + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
+cox7
+
+# add PeakMY
+cox8 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100 + MaxKetoDFC60 + ad_Lactation + PeakMY + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
+cox8
 ```
 
 # Coxme model with random effect
 ```{r}
-coxme1 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme0 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme0
+coxme1 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDFC60 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme1
-anova(cox1, coxme1)
-coxme2 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+anova(coxme0, coxme1)
+coxme2 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDFC60 + ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme2
+anova(coxme1, coxme2)
+# coxme2 is almost the same as coxme1
 
 coxme1$loglik
 coxme2$loglik
@@ -495,33 +514,6 @@ plot(log(survival$AvgKeto20_100), resid.cox10)
 lines(lowess(log(survival$AvgKeto20_100), resid.cox10))
 ```
 
-# Coxme model with random effect
-```{r}
-cox0 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~1, data=survival)
-cox10 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100, data = survival)
-summary(cox10)
-
-cox1 <- coxph(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)), data=survival)
-summary(cox1)
-
-coxme1 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
-coxme1
-anova(cox1, coxme1)
-coxme2 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
-coxme2
-
-coxme1$loglik
-coxme2$loglik
-AIC(coxme1)
-AIC(coxme2)
-```
-
-```{r}
-coxme1.keto <- coxme(Surv(DaysToFirstHeat, FirstHeat)~KetoStatus20 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
-coxme1.keto
-
-```
-
 # Martingale residuals: check linearity
 ```{r}
 # check AvgKeto20_100 in coxme1
@@ -539,13 +531,19 @@ lines(lowess(survival$PeakDFC, res.coxme1.peakdfc), col = "red")
 
 ```{r}
 # check AvgKeto20_100 in coxme2
-coxme2.keto <- coxme(Surv(DaysToFirstHeat, FirstHeat)~ ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme2.keto <- coxme(Surv(DaysToFirstHeat, FirstHeat)~ MaxKetoDFC60 + ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 res.coxme2 <- resid(coxme2.keto, type = "martingale")
 plot(survival$AvgKeto20_100, res.coxme2, main = "Residual of AvgKeto20_100")
 lines(lowess(survival$AvgKeto20_100, res.coxme2), col = "red")
 
+# check MaxKetoDFC60 in coxme2
+coxme2.ketodfc <- coxme(Surv(DaysToFirstHeat, FirstHeat)~ AvgKeto20_100 + ad_Lactation + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+res.coxme2.ketodfc60 <- resid(coxme2.ketodfc, type = "martingale")
+plot(survival$MaxKetoDFC60, res.coxme2.ketodfc60, main = "Residual of AvgKeto20_100")
+lines(lowess(survival$MaxKetoDFC60, res.coxme2.ketodfc60), col = "red")
+
 # check PeakDFC in coxme2
-coxme2.peakdfc <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme2.peakdfc <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDFC60 + ad_Lactation + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 res.coxme2.peakdfc <- resid(coxme2.peakdfc, type = "martingale")
 plot(survival$PeakDFC, res.coxme2.peakdfc, main = "Residual of PeakDFC")
 lines(lowess(survival$PeakDFC, res.coxme2.peakdfc), col = "red")
