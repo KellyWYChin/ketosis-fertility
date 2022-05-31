@@ -852,6 +852,8 @@ Three <- Three %>%
 colnames(Three)[colnames(Three) == "DFCFirstHeat"] <- "DaysToFirstHeat"
 colnames(Three)[colnames(Three) == "DFC_CLA"] <- "DaysToCLA"
 colnames(Three)[colnames(Three) == "Last_AI"] <- "NumAI"
+colnames(Three)[colnames(Three) == "MaxKetoDFC20"] <- "MaxKetoDIM20"
+colnames(Three)[colnames(Three) == "MaxKetoDFC60"] <- "MaxKetoDIM60"
 
 write_xlsx(Three, "../data/raw/Three.xlsx")
 ```
@@ -1135,9 +1137,9 @@ mean(df.parity4$SumMY60, na.rm = T)
 #library(psych)
 #AvgKeto20_atleast10
 summary(Three$AvgKeto20_atleast10)
-summary(Three$MaxKetoDFC20)
+summary(Three$MaxKetoDIM20)
 summary(Three$KetoDur20)
-plot(Three$MaxKetoDFC20)
+plot(Three$MaxKetoDIM20)
 summary(Three$nHighKeto20)
 
 plot(Three$AvgKeto20_atleast10, Three$ad_Lactation, 
@@ -1147,8 +1149,8 @@ plot(Three$AvgKeto20_atleast10, Three$ad_Lactation,
 abline(v = 0.08, col = "red")
 describe.by(Three$ad_Lactation, Three$AvgKeto20_atleast10)
 
-summary(Three$MaxKetoDFC20)
-ggplot(data=Three, aes(x=MaxKetoDFC20)) +
+summary(Three$MaxKetoDIM20)
+ggplot(data=Three, aes(x=MaxKetoDIM20)) +
   geom_histogram(breaks=seq(0, 20, by=0.5),
                  fill="blue", alpha = 0.3) +
   ggtitle("DIM when milk BHB reached the max within 20 DIM") +
@@ -1157,8 +1159,8 @@ ggplot(data=Three, aes(x=MaxKetoDFC20)) +
   ylab("#cows") +
   theme_classic()
 
-summary(Three$MaxKetoDFC60)
-ggplot(data=Three, aes(x=MaxKetoDFC60)) +
+summary(Three$MaxKetoDIM60)
+ggplot(data=Three, aes(x=MaxKetoDIM60)) +
   geom_histogram(breaks=seq(0, 60, by=0.5),
                  fill="blue", alpha = 0.3) +
   ggtitle("DIM when milk BHB reached the max within 60 DIM") +
@@ -1168,8 +1170,8 @@ ggplot(data=Three, aes(x=MaxKetoDFC60)) +
   theme_classic()
 
 # how many cows got their max within 20 days and how many cows got their max later? (percentage)
-summary(Three$MaxKetoDFC60)
-Three$MaxKetoD <- ifelse(Three$MaxKetoDFC60 <= 20, 1, 0)
+summary(Three$MaxKetoDIM60)
+Three$MaxKetoD <- ifelse(Three$MaxKetoDIM60 <= 20, 1, 0)
 sum(Three$MaxKetoD)/4041 #47% (1907/4041) cows had their max value within 20 days
 
 # how many cows got their max within 20 days and the max value was over 0.08?

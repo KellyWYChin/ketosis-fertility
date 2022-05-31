@@ -10,7 +10,7 @@ df.repro <- read_excel("1001, All Data, Proc, June 2020.xlsx", sheet = "ReproDat
 df.keto <- read_excel("1001, All Data, Proc, June 2020.xlsx", sheet = "Ketosis")
 colnames(df.cowinfo)[colnames(df.cowinfo)=="CowID"] <- "CowId"
 farm1001 <- data.frame()
-farm1001 <- merge(df.cowinfo, df.calving, by = "CowId", all.y=TRUE) %>% 
+farm1001 <- merge(df.cowinfo, df.calving, by = "CowId", all.y=TRUE) %>%
   merge(df.culldata, by = "CowId", all.x = TRUE) %>%
   merge(df.insemination, by = "CowId", all.x=TRUE, all.y=TRUE) %>%
   merge(df.pregnancy, by = "CowId", all.x=TRUE, all.y=TRUE)
@@ -27,7 +27,7 @@ df.pregnancy38 <- read_excel("1038, All Data, Proc, June 2020.xlsx", sheet = "Pr
 #change the CowID in sheet cowinfo into CowId
 colnames(df.cowinfo38)[colnames(df.cowinfo38)=="CowID"] <- "CowId"
 df.master38 <- data.frame()
-df.master38 <- merge(df.cowinfo38, df.calving38, by = "CowId") %>% 
+df.master38 <- merge(df.cowinfo38, df.calving38, by = "CowId") %>%
   merge(df.culldata38, by = "CowId", all.x = TRUE) %>%
   merge(df.insemination38, by = "CowId") %>%
   merge(df.pregnancy38, by = "CowId")
@@ -59,7 +59,7 @@ farm38_repro <- data.frame()
 farm38_repro <- merge(df.master38, df.n_insem38, by=c('CowId', 'FarmNo'), all.y=TRUE)
 
 ##### find out the number of insemination for each cow #####
-df.repro$Ins <- ifelse(df.repro$Inseminate == "TRUE", 1, 0) 
+df.repro$Ins <- ifelse(df.repro$Inseminate == "TRUE", 1, 0)
 #times of insemination per cow
 df.n_insem <- df.repro %>%
   group_by(CowId, FarmNo) %>%
@@ -72,7 +72,7 @@ df.d_insem <- df.repro %>%
   filter(Inseminate==TRUE) %>%
   slice_max(SamplingTime)
 
-#delete rows that the insemination = FALSE
+# delete rows that the insemination = FALSE
 df.repro$Ins <- df.repro[!df.repro$Inseminate == FALSE, ]
 #create a new code for cows that BHBraw over 0.08 as 1
 df.keto$ketoCow <- ifelse(df.keto$BHBraw >= 0.08, 1, 0)
@@ -85,20 +85,20 @@ for(i in 1001:1038){
   filename <- paste("C:/Data/",i,", All Data, Proc, June 2020.xlsx", sep = "")
   #open only ReproData sheet from each farm
   df.repro <- read_excel(filename, sheet = "ReproData")
-  
+
   #create a new column which code the cows which were inseminated as 1, not-inseminated as 0
-  df.repro$Ins <- ifelse(df.repro$Inseminate == "TRUE", 1, 0) 
+  df.repro$Ins <- ifelse(df.repro$Inseminate == "TRUE", 1, 0)
   #times of insemination per cow
   df.n_insem <- df.repro %>%
     group_by(CowId, FarmNo) %>%
     summarise(n.Ins=sum(Ins))
-  
+
   df.fd_insem <- df.repro %>%
     group_by(CowId, FarmNo) %>%
     select(CowId, FarmNo, Inseminate, SamplingTime, DFC) %>%
     filter(Inseminate==TRUE) %>%
     slice_max(SamplingTime)
-  
+
   df.n_insem <- merge(df.n_insem, df.fd_insem, by=c('FarmNo', 'CowId'), all.x=TRUE, all.y=TRUE)
   N.D.Insemination <- bind_rows(N.D.Insemination, df.n_insem)
 }
@@ -142,7 +142,7 @@ for(i in 1001:1038){
   df.keto$ketoCow <- ifelse(df.keto$BHBraw >= 0.08, 1, 0)
   df.n.ketoCow <- df.keto %>%
     group_by(CowId, FarmNo) %>%
-    summarise(n.ketoCow=sum(ketoCow)) 
+    summarise(n.ketoCow=sum(ketoCow))
   ##### the earliest DFC when BHB>0.08 mmol/L together with the BHB value #####
   df.table <- df.keto %>%
     group_by(CowId) %>%

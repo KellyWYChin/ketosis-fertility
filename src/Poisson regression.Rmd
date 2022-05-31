@@ -62,7 +62,6 @@ boxplot(Three.offset$DaysToFirstIns~Three.offset$FarmNo)
 summary(Three.offset$NumAI)
 var(Three.offset$NumAI)
 
-hist(Three$MaxKeto)
 ```
 
 # Research Question: what is the assocation of numbers of AI and ketosis?
@@ -97,7 +96,7 @@ coef3 = coef(nb.mod1)
 
 ## lme with random effect
 ```{r}
-mod1.lme <- lme(NumAI ~ AvgKeto20_100 + MaxKetoDFC20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason, 
+mod1.lme <- lme(NumAI ~ AvgKeto20_100 + MaxKetoDIM20 + factor(ad_Lactation) + PeakDFC + AvgMY20 + CalvingSeason, 
                 random = ~ 1|FarmNo, 
                 data = Three, 
                 na.action = na.exclude,
@@ -403,7 +402,7 @@ summary(fit7.poisson) #AIC 15999.1, Lactation is not significant
 res.fit7 <- simulateResiduals(fit7.nb1)
 plot(res.fit7)
 
-fit7.poisson2 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDFC60 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = poisson(link = "log"))
+fit7.poisson2 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDIM60 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + PeakMY + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(fit7.poisson2) #AIC 15986.7, Lactation is not significant
 
 ########################################
@@ -437,26 +436,26 @@ anova(fit8.nb2, fit8.poisson)
 res.fit8.poisson <- simulateResiduals(fit8.poisson)
 plot(res.fit8.poisson)
 
-# add MaxKetoDFC60 (no lactation)
-fit8.poisson2 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDFC60 + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+# add MaxKetoDIM60 (no lactation)
+fit8.poisson2 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDIM60 + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(fit8.poisson2) #AIC 15963.7
 anova(fit8.poisson, fit8.poisson2)
 
 # add Lactation (has everything)
-fit8.poisson3 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDFC60 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+fit8.poisson3 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDIM60 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(fit8.poisson3) #AIC 15962.9
 
 anova(fit8.poisson2, fit8.poisson3) # model fit8.poisson2 and fit8.poisson3 are similar
 anova(fit7.poisson2, fit8.poisson3) # model fit8.poisson3 is better than model fit7.poisson (AvgMY60 is better than PeakMY)
 
 # remove CalvingSeason (has lactation)
-fit8.poisson4 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDFC60 + factor(ad_Lactation) + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+fit8.poisson4 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDIM60 + factor(ad_Lactation) + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(fit8.poisson4) #AIC 15967.7
 anova(fit8.poisson2, fit8.poisson4) # model fit8.poisson2 and fit8.poisson4 are similar
 anova(fit8.poisson3, fit8.poisson4) # model fit8.poisson3 is slightly better than model fit8.poisson4
 
 # lactation become continuous variable -> less significant
-fit8.poisson5 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDFC60 + Lactation + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+fit8.poisson5 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDIM60 + Lactation + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(fit8.poisson5)
 
 ## TODO
