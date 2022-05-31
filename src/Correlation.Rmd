@@ -21,6 +21,7 @@ library(lubridate)
 library(docstring)
 library(roxygen2)
 library(corrplot)
+library(psych)
 ``` 
 
 # Correlation in farm info, ketosis, reproduction, milk yield
@@ -1163,16 +1164,96 @@ cor.test(df.parity4$AvgKeto60_atleast10, df.parity4$AvgMY60, use = "complete.obs
 ## Repro + keto + milk parameters
 ```{r}
 df.repro.keto.milk <- Three %>%
-  select(DaysToFirstHeat, DaysToFirstIns, NumAI, AvgKeto20_atleast10, KetoDur20, nHighKeto20, AvgKeto60_atleast10, KetoDur60, nHighKeto60, PeakMY, PeakDFC, AvgMY20, SumMY20, AvgMY60, SumMY60)
+  select(DaysToFirstHeat, DaysToFirstIns, NumAI, AvgKeto20_100, KetoDur20, MaxKetoDIM60, nHighKeto20, PeakMY, PeakDFC, AvgMY20, SumMY20, AvgMY60, SumMY60)
 cor.repro.keto.milk <- cor(na.omit(df.repro.keto.milk))
 cor.repro.keto.milk
 corrplot(cor.repro.keto.milk,
          tl.col = "brown",
-         tl.srt = 50, bg = "white",
+         tl.srt = 25, bg = "white",
          title = "\n\n Correlation plot of reproduction, ketosis and milk parameters",
          addCoef.col = "black", number.cex = 0.5,
          type = "lower")
 ```
 
+# Correlation of milk data
+```{r}
+milk <- Three %>%
+  select(PeakMY, PeakDFC, AvgMY20, SumMY20, AvgMY60, SumMY60)
+pairs.panels(milk,
+             smooth = TRUE,      # If TRUE, draws loess smooths
+             scale = FALSE,      # If TRUE, scales the correlation text font
+             density = TRUE,     # If TRUE, adds density plots and histograms
+             ellipses = TRUE,    # If TRUE, draws ellipses
+             method = "spearman", # Correlation method (also "spearman" or "kendall")
+             pch = 21,           # pch symbol
+             lm = FALSE,         # If TRUE, plots linear fit rather than the LOESS (smoothed) fit
+             cor = TRUE,         # If TRUE, reports correlations
+             jiggle = FALSE,     # If TRUE, data points are jittered
+             factor = 2,         # Jittering factor
+             hist.col = 4,       # Histograms color
+             stars = TRUE,       # If TRUE, adds significance level with stars
+             ci = TRUE)          # If TRUE, adds confidence intervals
+```
 
+# Correlation of ketosis data
+```{r}
+ketosis <- Three %>%
+  select(AvgKeto20_100, KetoDur20, nHighKeto20, MaxKeto20, MaxKetoDIM20, MaxKetoDIM60)
+pairs.panels(ketosis,
+             smooth = TRUE,      # If TRUE, draws loess smooths
+             scale = FALSE,      # If TRUE, scales the correlation text font
+             density = TRUE,     # If TRUE, adds density plots and histograms
+             ellipses = TRUE,    # If TRUE, draws ellipses
+             method = "spearman", # Correlation method (also "spearman" or "kendall")
+             pch = 21,           # pch symbol
+             lm = FALSE,         # If TRUE, plots linear fit rather than the LOESS (smoothed) fit
+             cor = TRUE,         # If TRUE, reports correlations
+             jiggle = FALSE,     # If TRUE, data points are jittered
+             factor = 2,         # Jittering factor
+             hist.col = 4,       # Histograms color
+             stars = TRUE,       # If TRUE, adds significance level with stars
+             ci = TRUE)          # If TRUE, adds confidence intervals
+
+corPlot(ketosis, cex = 1.2)
+```
+
+# Correlation of reproduction data
+```{r}
+reproduction <- Three %>%
+  select(DaysToFirstHeat, DaysToFirstIns, NumAI, Lactation, cull.calving)
+pairs.panels(reproduction,
+             smooth = TRUE,      # If TRUE, draws loess smooths
+             scale = FALSE,      # If TRUE, scales the correlation text font
+             density = TRUE,     # If TRUE, adds density plots and histograms
+             ellipses = TRUE,    # If TRUE, draws ellipses
+             method = "spearman", # Correlation method (also "spearman" or "kendall")
+             pch = 21,           # pch symbol
+             lm = FALSE,         # If TRUE, plots linear fit rather than the LOESS (smoothed) fit
+             cor = TRUE,         # If TRUE, reports correlations
+             jiggle = FALSE,     # If TRUE, data points are jittered
+             factor = 2,         # Jittering factor
+             hist.col = 4,       # Histograms color
+             stars = TRUE,       # If TRUE, adds significance level with stars
+             ci = TRUE)          # If TRUE, adds confidence intervals
+```
+
+# Correlation of reproduction data
+```{r}
+reproduction.ketosis <- Three %>%
+  select(DaysToFirstHeat, DaysToFirstIns, NumAI, AvgKeto20_100, MaxKetoDIM60, KetoDur20)
+pairs.panels(reproduction.ketosis,
+             smooth = TRUE,      # If TRUE, draws loess smooths
+             scale = FALSE,      # If TRUE, scales the correlation text font
+             density = TRUE,     # If TRUE, adds density plots and histograms
+             ellipses = TRUE,    # If TRUE, draws ellipses
+             method = "spearman", # Correlation method (also "spearman" or "kendall")
+             pch = 21,           # pch symbol
+             lm = FALSE,         # If TRUE, plots linear fit rather than the LOESS (smoothed) fit
+             cor = TRUE,         # If TRUE, reports correlations
+             jiggle = FALSE,     # If TRUE, data points are jittered
+             factor = 2,         # Jittering factor
+             hist.col = 4,       # Histograms color
+             stars = TRUE,       # If TRUE, adds significance level with stars
+             ci = TRUE)          # If TRUE, adds confidence intervals
+```
 
