@@ -1240,7 +1240,7 @@ pairs.panels(reproduction,
 # Correlation of reproduction data
 ```{r}
 reproduction.ketosis <- Three %>%
-  select(DaysToFirstHeat, DaysToFirstIns, NumAI, AvgKeto20_100, MaxKetoDIM60, KetoDur20)
+  select(DaysToFirstHeat, DaysToFirstIns, NumAI, AvgKeto20_100, MaxKetoDIM60, KetoDur20, nHighKeto20, MaxKeto20)
 pairs.panels(reproduction.ketosis,
              smooth = TRUE,      # If TRUE, draws loess smooths
              scale = FALSE,      # If TRUE, scales the correlation text font
@@ -1255,5 +1255,8 @@ pairs.panels(reproduction.ketosis,
              hist.col = 4,       # Histograms color
              stars = TRUE,       # If TRUE, adds significance level with stars
              ci = TRUE)          # If TRUE, adds confidence intervals
+
+library(psych)
+corPlot(reproduction.ketosis, cex = 1,2)
 ```
 

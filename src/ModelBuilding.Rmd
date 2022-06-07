@@ -131,7 +131,10 @@ survival <- Three %>%
                              ifelse(Three$MaxKetoDIM20 >= 12 & Three$MaxKetoDIM20 < 17, 3,
                                     ifelse(Three$MaxKetoDIM20 >= 8 & Three$MaxKetoDIM20 < 12, 2, 
                                            ifelse(Three$MaxKetoDIM20 <8, 1, NA))))) %>%
-  mutate(KetoMaxDay2 = ifelse(Three$MaxKetoDIM20 >= 12, 1, 0))
+  mutate(KetoMaxDay2 = ifelse(Three$MaxKetoDIM20 >= 12, 1, 0)) %>%
+  mutate(KetoMaxDay3 = ifelse(Three$MaxKetoDIM60 <= 14, "first2wk", 
+                              ifelse(Three$MaxKetoDIM60 > 14 & Three$MaxKetoDIM60 <= 30, "firstmth",
+                                     ifelse(Three$MaxKetoDIM60 > 30, "secondmth", NA))))
 
 summary(survival)
 survival$FarmNo <- as.factor(survival$FarmNo)
@@ -143,6 +146,13 @@ survival$KetoQua <- as.factor(survival$KetoQua)
 
 # Descriptive statistics - DaysToFirstHeat
 ```{r}
+plot(survival$DaysToFirstHeat, survival$AvgKeto20_100,
+     xlab = "Time from calving to first heat", ylab = "Average milk BHB*100 (mmol/L)")
+boxplot(survival$DaysToFirstHeat~survival$KetoStatus20, xlab = "Average milk BHB < 0.08 = 0, >=0.08 = 1",
+        ylab = "Time from calving to first heat")
+
+plot(survival$DaysToFirstHeat, survival$MaxKetoDIM60)
+
 # DaysToFirstHeat
 ggplot(data=survival, aes(x=DaysToFirstHeat))+
   geom_histogram(breaks=seq(0, 250, by=5),
@@ -157,6 +167,8 @@ var(survival$DaysToFirstHeat)
 sd(survival$DaysToFirstHeat)
 
 # BOXPLOT- DaysToFirstHeat vs. FarmNo
+summary(survival$DaysToFirstHeat)
+sd(survival$DaysToFirstHeat)
 plot(survival$DaysToFirstHeat ~ survival$AvgKeto20_100)
 boxplot(survival$DaysToFirstHeat ~ survival$FarmNo, xlab = "Farm ID", ylab = "Time from calving to first heat (day)")
 ggplot(data = survival, aes(x = FarmNo, y = DaysToFirstHeat)) +
@@ -518,13 +530,41 @@ anova(coxme2, coxme3)
 coxme4 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + AvgKeto20_100:PeakDFC + PeakDFC + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme4
 anova(coxme2, coxme4)
-# don't need to consider interaction between ketosis and peak day of highest milk yield
+# don't need to consider interaction between ketosis and peak day of highest milk 
+
+####################################
+##  Categorical ketosis variable  ##
+####################################
+keto1 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~factor(KetoStatus20) + KetoMaxDay3 + ad_Lactation + I(PeakDFC/7) + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+keto1
+anova(keto1, coxme6) # coxme6 is slightly better 
+
+keto1.1 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~factor(KetoStatus20) + MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+keto1.1
+anova(keto1.1, coxme6) # coxme6 is slightly better
+anova(keto1, keto1.1) # keto1.1 = keto1
+
+# use quantile 
+keto2 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~factor(KetoQua) + KetoMaxDay3 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+keto2
+anova(keto1, keto2) # keto1 = keto2
+anova(keto1.1, keto2) # keto1.1 = keto2
 
 ###########################
 ##      FINAL MODEL      ##
 ###########################
 coxme6 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme6
+
+AIC(coxme6) # 58800.51
+AIC(keto1) # 58813.51
+AIC(keto1.1) # 58809.45
+
+coxme7 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + (1|FarmNo), data=survival)
+coxme7
+
+anova(coxme6, coxme7) # model 6 is slightly better than model 7
+
 ```
 
 ## model check
@@ -545,17 +585,29 @@ lines(lowess(log(survival$AvgKeto20_100), resid.cox10))
 
 ### Martingale residuals: check linearity
 ```{r}
-# check AvgKeto20_100 in coxme1
-coxme1.keto <- coxme(Surv(DaysToFirstHeat, FirstHeat)~ ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
-res.coxme1 <- resid(coxme1.keto, type = "martingale")
-plot(survival$AvgKeto20_100, res.coxme1, main = "Residual of AvgKeto20_100")
-lines(lowess(survival$AvgKeto20_100, res.coxme1), col = "red")
+##########################
+##      FINAL MODEL     ##
+##########################
+# check AvgKeto20_100 in coxme6
+coxme6 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+coxme6
 
-# check PeakDFC in coxme1
-coxme1.peakdfc <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
-res.coxme1.peakdfc <- resid(coxme1.peakdfc, type = "martingale")
-plot(survival$PeakDFC, res.coxme1.peakdfc, main = "Residual of PeakDFC")
-lines(lowess(survival$PeakDFC, res.coxme1.peakdfc), col = "red")
+me6.keto1 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~ MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+res.keto1 <- resid(me6.keto1, type = "martingale")
+plot(survival$AvgKeto20_100, res.keto1, main = "Residual of AvgKeto20_100")
+lines(lowess(survival$AvgKeto20_100, res.keto1), col = "red")
+
+# check MaxKetoDIM60 in coxme6
+me6.keto2 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+res.keto2 <- resid(me6.keto2, type = "martingale")
+plot(survival$MaxKetoDIM60, res.keto2, main = "Residual of MaxKetoDIM60")
+lines(lowess(survival$MaxKetoDIM60, res.keto2), col = "red")
+
+# check ad_Lactation in coxme6
+me6.lact <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+res.lact <- resid(me6.lact, type = "martingale")
+plot(survival$ad_Lactation, res.lact, main = "Residual of ad_Lactation")
+lines(lowess(survival$ad_Lactation, res.lact), col = "red")
 ```
 
 ```{r}
@@ -594,6 +646,23 @@ resid.coxme1[,1]
 ```
 
 ```{r}
+##########################
+##      FINAL MODEL     ##
+##########################
+# check AvgKeto20_100 in coxme6
+coxme6 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
+#coxme6
+
+print(coxme.fit6.I <- cox.zph(coxme6, transform = "identity"))
+print(coxme.fit6.KM <- cox.zph(coxme6, transform = "km"))
+print(coxme.fit6.L <- cox.zph(coxme6, transform = "log"))
+par(mfrow = c(1,3))
+plot(coxme.fit6.I)
+plot(coxme.fit6.KM)
+plot(coxme.fit6.L)
+```
+
+```{r}
 ## First Heat
 df.cox1.heat <- coxph(Surv(DaysToFirstHeat, FirstHeat) ~ ad_Lactation + AvgKeto20_atleast10 + MaxKetoDIM20 + PeakDFC + AvgMY20 + CalvingSeason  + factor(FarmNo), data = survival)
 summary(df.cox1.heat)
@@ -610,6 +679,14 @@ curv_facet
 
 # Descriptive statistics - DaysToFirstIns
 ```{r}
+plot(survival$DaysToFirstIns, survival$AvgKeto20_100,
+     xlab = "Time from calving to first AI", ylab = "Average milk BHB*100 (mmol/L)")
+
+boxplot(survival$DaysToFirstIns~survival$KetoStatus20, xlab = "Average milk BHB < 0.08 = 0, >=0.08 = 1",
+        ylab = "Time from calving to first AI")
+
+plot(survival$DaysToFirstIns, survival$MaxKetoDIM60)
+
 # DaysToFirstIns
 ggplot(data=survival, aes(x=DaysToFirstIns))+
   geom_histogram(breaks=seq(0,300, by=5),
@@ -624,6 +701,8 @@ var(survival$DaysToFirstIns, na.rm=TRUE)
 sd(survival$DaysToFirstIns, na.rm=TRUE)
 
 # BOXPLOT- DaysToFirstIns vs. FarmNo
+summary(survival$DaysToFirstIns)
+sd(survival$DaysToFirstIns, na.rm = TRUE)
 plot(survival$DaysToFirstIns ~ survival$AvgKeto20_100)
 boxplot(survival$DaysToFirstIns ~ survival$FarmNo, xlab = "Farm ID", ylab = "Time from calving to first AI")
 ggplot(data = survival, aes(x = FarmNo, y = DaysToFirstIns)) +
@@ -639,7 +718,6 @@ ggplot(data = survival, aes(x = FarmNo, y = AvgKeto20_100)) +
   theme_classic() +
   labs(x = "Farm ID", y = "Average milk BHB*100 (mmol/L)") +
   theme(axis.text.x = element_text(angle = 90))
-
 
 boxplot(survival$DaysToFirstIns ~ survival$ad_Lactation)
 ggplot(data = survival, aes(x = ad_Lactation, y = DaysToFirstIns)) +
@@ -869,7 +947,7 @@ coxme9
 anova(coxme8, coxme9)
 # don't need to consider interaction between average milk yield and lactation
 
-coxme10 <- coxme(Surv(DaysToFirstIns, FirstAI)~AvgKeto20_100 + AvgMY60:AvgKeto20_100 + PeakDFC + AvgMY60 + (1|FarmNo), data=survival)
+coxme10 <- coxme(Surv(DaysToFirstIns, FirstAI)~AvgKeto20_100 + AvgMY60:KetoStatus20 + PeakDFC + AvgMY60 + (1|FarmNo), data=survival)
 coxme10
 anova(coxme8, coxme10)
 # don't need to consider interaction between milk yield and average ketosis
@@ -909,7 +987,42 @@ coxme8
 coxme6 <- coxme(Surv(DaysToFirstIns, FirstAI)~AvgKeto20_100 + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data=survival)
 coxme6
 
+cox6 <- coxph(Surv(DaysToFirstIns, FirstAI)~AvgKeto20_100 + I(PeakDFC/7) + AvgMY60, data=survival)
+
 anova(coxme8, coxme6)
+anova(cox6, coxme6)
+
+ggforest(cox6, data = survival)
+```
+
+### Martingale residuals: check linearity
+```{r}
+##########################
+##      FINAL MODEL     ##
+##########################
+# check AvgKeto20_100 in coxme6
+coxme6 <- coxme(Surv(DaysToFirstIns, FirstAI) ~ AvgKeto20_100 + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data=survival)
+coxme6
+
+me6.keto <- coxme(Surv(DaysToFirstIns, FirstAI) ~ I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data=survival)
+res.keto <- resid(me6.keto, type = "martingale")
+plot(survival$AvgKeto20_100, res.keto, main = "Residual of AvgKeto20_100 (first AI)")
+lines(lowess(survival$AvgKeto20_100, res.keto), col = "red")
+
+me6.PEAK <- coxme(Surv(DaysToFirstIns, FirstAI) ~ AvgKeto20_100 + AvgMY60 + (1|FarmNo), data=survival)
+res.PEAK <- resid(me6.PEAK, type = "martingale")
+plot(survival$PeakDFC, res.PEAK, main = "Residual of PeakDFC (first AI)")
+lines(lowess(survival$PeakDFC, res.PEAK), col = "red")
+```
+
+```{r}
+print(coxme.fit6.I <- cox.zph(coxme6, transform = "identity"))
+print(coxme.fit6.KM <- cox.zph(coxme6, transform = "km"))
+print(coxme.fit6.L <- cox.zph(coxme6, transform = "log"))
+par(mfrow = c(1,3))
+plot(coxme.fit6.I)
+plot(coxme.fit6.KM)
+plot(coxme.fit6.L)
 ```
 
 ```{r}

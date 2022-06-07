@@ -487,12 +487,102 @@ plot(res.fit10)
 fit10.poisson <- glmmTMB(NumAI ~ AvgKeto20_100 + CalvingSeason + I(PeakDFC/7) + cut(AvgMY60, c(0, 30, 37, 44, 70)) + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
 summary(fit10.poisson) #AIC 15994.4, NO BETTER THAN MODEL fit9.poisson
 
-######################################
+#######################################
 ##  fit8.poisson2 is the best model  ##
-######################################
+#######################################
 res.fit8.poisson2 <- simulateResiduals(fit8.poisson2)
 plot(res.fit8.poisson2)
+```
 
+# Model without AvgKeto20_100
+```{r}
+fit8.poisson2 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDIM60 + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(fit8.poisson2)
+
+# add Lactation (has everything)
+fit8.poisson3 <- glmmTMB(NumAI ~ AvgKeto20_100 + MaxKetoDIM60 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(fit8.poisson3) #AIC 15962.9
+
+poi1 <- glmmTMB(NumAI ~ MaxKetoDIM60 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(poi1) # AIC 15962
+
+res.poi1 <- simulateResiduals(poi1)
+plot(res.poi1)
+
+# remove lactation 
+poi2 <- glmmTMB(NumAI ~ MaxKetoDIM60 + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(poi2) # AIC 15962.2
+anova(poi1, poi2) # poi1 = poi2, poi2 is simpler
+
+# remove calving season (lactation is in the model)
+poi3 <- glmmTMB(NumAI ~ MaxKetoDIM60 + factor(ad_Lactation) + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(poi3) # AIC 15967.2
+anova(poi2, poi3) # poi2 is slightly better than poi3
+
+# remove CowNo 
+poi4 <- glmmTMB(NumAI ~ MaxKetoDIM60 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(poi4) # AIC 15963.4
+anova(poi1, poi4) # poi1 = poi4, poi4 is simpler
+
+# remove both lactation and CowNo
+poi5 <- glmmTMB(NumAI ~ MaxKetoDIM60 + CalvingSeason + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(poi5) # AIC 15964.1
+anova(poi1, poi5) # poi1 is slightly better than poi5
+anova(poi4, poi5) # poi4 = poi5, poi5 is simpler
+anova(poi3, poi5) # poi3 = poi5, poi5 is simpler
+
+# remove lactation, calving season, CowNo
+poi6 <- glmmTMB(NumAI ~ MaxKetoDIM60 + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data = Three, family = poisson(link = "log")) 
+summary(poi6) # 15970.7
+anova(poi5, poi6) # poi5 is significantly better than poi6
+
+# remove lactation and calving season 
+poi7 <- glmmTMB(NumAI ~ MaxKetoDIM60 + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+summary(poi7) # AIC 15968.7
+anova(poi5, poi7) # poi5 is significantly better than poi7
+anova(poi6, poi7) # poi6 = poi7
+
+
+anova(fit8.poisson2, poi1)
+# remove AvgKeto20_100 doesn't make a big difference on fitness of model
+
+############################
+##       FINAL MODEL      ##
+############################
+poi1 <- glmmTMB(NumAI ~ MaxKetoDIM60 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + cut(CowNo, c(0, 100, 180, 500)) + (1|FarmNo), data = Three, family = poisson(link = "log"))
+
+poi4 <- glmmTMB(NumAI ~ MaxKetoDIM60 + factor(ad_Lactation) + CalvingSeason + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data = Three, family = poisson(link = "log"))
+
+poi5 <- glmmTMB(NumAI ~ MaxKetoDIM60 + CalvingSeason + I(PeakDFC/7) + AvgMY60 + (1|FarmNo), data = Three, family = poisson(link = "log"))
+
+summary(poi1) # 15962 (lowest)
+summary(poi4) # 15963.4
+summary(poi5) # 15964.1
+
+anova(poi1, poi5) # poi1 is slightly better than poi5
+anova(poi1, poi4) # poi1 = poi4
+anova(poi4, poi5) # poi4 = poi5
+
+# choose model poi1 
+res.poi1 <- simulateResiduals(poi1)
+plot(res.poi1)
+
+## TODO
+outliers(res.poi1) # HAVE 61 OUTLIERS
+
+exp(0.344)
+exp(-0.0023138)
+exp(-0.0597247)
+exp(-0.0635139)
+exp(-0.0858755)
+exp(0.0710872)
+exp(-0.0153249)
+exp(0.0260276)
+exp(0.0046391)
+exp(0.0155159)
+exp(0.0828569)
+exp(0.2800178)
+var(Three$NumAI)
 ```
 
 ## Offset - time from calving to last AI
@@ -663,21 +753,4 @@ count2 <- glmer(NumAI ~ HighKeto20 + factor(ad_Lactation) + (1|FarmNo), data = T
 summary(count2)
 count3 <- glmer(NumAI ~ HighKeto20 + factor(ad_Lactation) + CalvingSeason + (1|FarmNo), data = Three.count, family = poisson(link = "log"))
 summary(count3)
-```
-
-
-# Extra AI
-```{r}
-extra <- Three.offset %>%
-  filter(NumAI >= 1)
-mean(extra$NumAI)
-var(extra$NumAI)
-table(extra$NumAI)
-
-mod.extra <- glmer(NumAI ~ AvgKeto20_100 + cut(CowNo, c(0, 100, 180, 1000)) + offset(log(Calving.lastAI/30)) + (1|FarmNo), data = extra, family = poisson(link = "log"))
-summary(mod.extra)
-res.extra <- simulateResiduals(mod.extra)
-plot(res.extra)
-
-mod.extra2 <- glmer(NumAI ~ AvgKeto20_100)
 ```

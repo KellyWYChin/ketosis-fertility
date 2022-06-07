@@ -876,6 +876,17 @@ ggplot(data=Three, aes(x=fct_rev(fct_infreq(FarmNo)))) +
 
 summary(Three$CowNo)
 
+df.farm <- Three %>%
+  select(FarmNo, CowNo) %>%
+  distinct(FarmNo, CowNo)
+df.farm$HerdSize <- ifelse(df.farm$CowNo <=100, "Small", 
+                           ifelse(df.farm$CowNo > 100 & df.farm$CowNo <= 180, "Median", 
+                                  ifelse(df.farm$CowNo > 180, "Large", NA)))
+table(df.farm$HerdSize)
+sum(df.farm$CowNo[df.farm$HerdSize == "Large"])
+sum(df.farm$CowNo[df.farm$HerdSize == "Small"])
+sum(df.farm$CowNo[df.farm$HerdSize == "Median"])
+
 # Number of cows in each calving season
 ggplot(data=Three, aes(x=factor(CalvingSeason))) +
   geom_bar(stat="count", fill="darkred") +
@@ -1177,5 +1188,22 @@ sum(Three$MaxKetoD)/4041 #47% (1907/4041) cows had their max value within 20 day
 # how many cows got their max within 20 days and the max value was over 0.08?
 Three$keto20 <- ifelse(Three$MaxKetoD == 1 & Three$MaxKeto20 >= 0.08, 1, 0)
 sum(Three$keto20)/sum(Three$MaxKetoD) #75% (1427/1907) were ketotic cows 
+
+sd(Three$DaysToFirstIns, na.rm = TRUE)
+sd(Three$DaysToFirstHeat)
+boxplot(Three$DaysToFirstHeat~Three$ad_Lactation, ylab = "Days from calving to first heat", xlab = "Parity")
+Three$ad_Lactation <- as.factor(Three$ad_Lactation)
+anova(lm(Three$DaysToFirstHeat~Three$ad_Lactation))
+df.fit1.post <- aov(Three$DaysToFirstHeat~Three$ad_Lactation)
+TukeyHSD(df.fit1.post)
+
+boxplot(Three$DaysToFirstIns~Three$ad_Lactation, ylab = "Days from calving to first insemination", xlab = "Parity")
+anova(lm(Three$DaysToFirstIns~Three$ad_Lactation))
+df.fit2.post <- aov(Three$DaysToFirstIns~Three$ad_Lactation)
+TukeyHSD(df.fit2.post)
+
+summary(Three$MaxKetoDIM60)
+
+boxplot(Three$DaysToFirstHeat~Three$CalvingSeason, ylab = "Days from calving to first heat", xlab = "Calving season")
 ```
 
