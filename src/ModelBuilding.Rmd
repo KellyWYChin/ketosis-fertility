@@ -120,6 +120,7 @@ anova(glm.mod1, glm.log1, test = "Chisq")
 ```
 ```{r}
 survival <- Three %>%
+  mutate(FirstCLA = ifelse(is.na(Three$DaysToCLA), 0, 1)) %>%
   mutate(FirstHeat = ifelse(is.na(Three$DaysToFirstHeat), 0, 1)) %>%
   mutate(FirstAI = ifelse(is.na(Three$DaysToFirstIns), 0, 1)) %>%
   mutate(KetoStatus20 = ifelse(Three$AvgKeto20_atleast10 >= 0.08, 1, 0)) %>%
@@ -143,6 +144,95 @@ survival$KetoStatus20 <- as.factor(survival$KetoStatus20)
 survival$ad_Lactation <- as.factor(survival$ad_Lactation)
 survival$KetoQua <- as.factor(survival$KetoQua)
 ```
+
+# Descriptive statistics - DaysToCLA
+```{r}
+plot(survival$DaysToCLA, survival$AvgKeto20_100,
+     xlab = "Time from calving to resupmtion of cyclicity", ylab = "Average milk BHB*100 (mmol/L)")
+boxplot(survival$DaysToFirstHeat~survival$KetoStatus20, xlab = "Average milk BHB < 0.08: 0; >=0.08: 1", ylab = "Time from calving to first cyclicity")
+
+plot(survival$DaysToCLA, survival$MaxKetoDIM60)
+
+# DaysToCLA
+ggplot(data=survival, aes(x=DaysToCLA))+
+  geom_histogram(breaks=seq(0, 250, by=5),
+                 fill="lightblue")+
+  #facet_wrap(Three$FarmNo) +
+  ggtitle("Time from Calving to Resumption of Cyclicity")+
+  xlab("day")+
+  ylab("#cows")+
+  theme_classic()
+summary(survival$DaysToCLA)
+var(survival$DaysToCLA)
+sd(survival$DaysToCLA)
+
+# BOXPLOT- DaysToCLA vs. FarmNo
+summary(survival$DaysToCLA)
+sd(survival$DaysToCLA)
+plot(survival$DaysToCLA ~ survival$AvgKeto20_100)
+boxplot(survival$DaysToCLA ~ survival$FarmNo, xlab = "Farm ID", ylab = "Time from calving to resupmtion of cyclicity (day)")
+ggplot(data = survival, aes(x = FarmNo, y = DaysToCLA)) +
+  geom_boxplot(outlier.color = "red") + 
+  theme_classic() +
+  labs(x = "Farm ID", y = "Days from calving to resupmtion of cyclicity (day)") +
+  theme(axis.text.x = element_text(angle = 90))
+  
+# BOXPLOT- AvgKeto20_100 vs. FarmNo
+boxplot(survival$AvgKeto20_100 ~ survival$FarmNo)
+ggplot(data = survival, aes(x = FarmNo, y = AvgKeto20_100)) +
+  geom_boxplot(outlier.color = "red") + 
+  theme_classic() +
+  labs(x = "Farm ID", y = "Average milk BHB*100 (mmol/L)") +
+  theme(axis.text.x = element_text(angle = 90))
+
+
+boxplot(survival$DaysToCLA ~ survival$ad_Lactation, ylab = "Days from calving to resupmtion of cyclicity", xlab = "Parity")
+#ggplot(data = survival, aes(x = ad_Lactation, y = DaysToCLA)) +
+#  geom_boxplot(outlier.color = "red") + 
+#  theme_classic() +
+#  labs(x = "Parity", y = "Days from calving to first cyclicity")
+```
+
+## Survival curves (DaysToCLA)
+```{r}
+surv.heat <- survfit(Surv(DaysToCLA, FirstCLA) ~ 1, data = survival)
+plot(surv.heat, main = "Cumulatvie survival time from calving to resumption of cyclicity",
+     ylab = "Cumulative survival probability",
+     xlab = "Time (days from calving to resumption of cyclicity)")
+print(surv.heat)
+ggsurvplot(surv.heat, data = survival,
+           surv.median.line = "hv",
+           xlab = "Time (days from calving to resumption of cyclicity",
+           legend.title = "Cumulative survival time to resumption of cyclicity",
+           pval = TRUE,
+           conf.int = TRUE,
+           risk.table = TRUE,
+           tables.height = 0.2,
+           tables.theme = theme_cleantable(),
+           ggtheme = theme_bw())
+
+surv1.heat <- survfit(Surv(DaysToCLA, FirstCLA) ~ ad_Lactation, data=survival)
+print(surv1.heat)
+ggsurvplot(surv1.heat, data=survival,
+           surv.median.line = "hv",
+           xlab = "Days from Calving to First Heat",
+           legend.title = "Parity", 
+           legend.labs = c("1", "2", "3", "4+"),
+           pval = TRUE, 
+           conf.int = TRUE, 
+           risk.table = TRUE,
+           tables.height = 0.28, 
+           tables.theme = theme_cleantable(),
+           ggtheme = theme_bw())
+```
+
+
+
+
+
+
+
+
 
 # Descriptive statistics - DaysToFirstHeat
 ```{r}
@@ -653,12 +743,12 @@ resid.coxme1[,1]
 coxme6 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 #coxme6
 
-print(coxme.fit6.I <- cox.zph(coxme6, transform = "identity"))
-print(coxme.fit6.KM <- cox.zph(coxme6, transform = "km"))
+#print(coxme.fit6.I <- cox.zph(coxme6, transform = "identity"))
+#print(coxme.fit6.KM <- cox.zph(coxme6, transform = "km"))
 print(coxme.fit6.L <- cox.zph(coxme6, transform = "log"))
 par(mfrow = c(1,3))
-plot(coxme.fit6.I)
-plot(coxme.fit6.KM)
+#plot(coxme.fit6.I)
+#plot(coxme.fit6.KM)
 plot(coxme.fit6.L)
 ```
 
@@ -1013,6 +1103,11 @@ me6.PEAK <- coxme(Surv(DaysToFirstIns, FirstAI) ~ AvgKeto20_100 + AvgMY60 + (1|F
 res.PEAK <- resid(me6.PEAK, type = "martingale")
 plot(survival$PeakDFC, res.PEAK, main = "Residual of PeakDFC (first AI)")
 lines(lowess(survival$PeakDFC, res.PEAK), col = "red")
+
+me6.MY <- coxme(Surv(DaysToFirstIns, FirstAI) ~ AvgKeto20_100 + I(PeakDFC/7) + (1|FarmNo), data=survival)
+res.MY <- resid(me6.MY, type = "martingale")
+plot(survival$AvgMY60, res.MY, main = "Residual of AvgMY60 (first AI)")
+lines(lowess(survival$AvgMY60, res.MY), col = "red")
 ```
 
 ```{r}
