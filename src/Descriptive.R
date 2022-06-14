@@ -68,7 +68,7 @@ threeinone$AI_Calving <- as.numeric(threeinone$AI_Calving)
 which(threeinone$AI_Calving > 365)
 
 ################################################################################
-#####Exclude all the duplicated cows due to data inconsistency##################
+###  Exclude all the duplicated cows due to data inconsistency  ################
 ################################################################################
 test1 <- threeinone %>%
   distinct(FarmNo, CowId, .keep_all=TRUE)

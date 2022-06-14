@@ -1202,8 +1202,13 @@ anova(lm(Three$DaysToFirstIns~Three$ad_Lactation))
 df.fit2.post <- aov(Three$DaysToFirstIns~Three$ad_Lactation)
 TukeyHSD(df.fit2.post)
 
+anova(lm(Three$DaysToCLA~Three$ad_Lactation))
+df.fit3.post <- aov(Three$DaysToCLA~Three$ad_Lactation)
+TukeyHSD(df.fit3.post)
+
 summary(Three$MaxKetoDIM60)
 
-boxplot(Three$DaysToFirstHeat~Three$CalvingSeason, ylab = "Days from calving to first heat", xlab = "Calving season")
+boxplot(Three$DaysToFirstHeat~Three$CalvingSeason, ylab = "Days from calving to first recognized heat", xlab = "Calving season")
+
 ```
 
