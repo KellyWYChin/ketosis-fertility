@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # R libraries
 ```{r}
 library(readxl)
+library(dplyr)
 library(performance)
 library(survival)
 library(survminer)
@@ -800,9 +801,27 @@ anova(coxme2, coxme6) # coxme2 is the same as coxme6
 AIC(coxme6) # 58800.51
 
 # remove farm size
-coxme7 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + (1|FarmNo), data=survival)
-
+coxme7 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + factor(ad_Lactation) + I(PeakDFC/7) + CalvingSeason + (1|FarmNo), data=survival)
+coxme7
 AIC(coxme7) # 58801.19 coxme7 is simpler than coxme6, AIC difference no more than 2 points
+
+# lactation as a continuous variable
+coxme7.1 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + Lactation + I(PeakDFC/7) + CalvingSeason + (1|FarmNo), data=survival)
+coxme7.1
+
+AIC(coxme7.1) # 58801.09
+
+# model 7 without peakDFC
+coxme8 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + factor(ad_Lactation) + CalvingSeason + (1|FarmNo), data=survival)
+coxme8
+
+AIC(coxme8) # 58804.73
+AIC(coxme8) - AIC(coxme7) # 3.5 -> model 7 is better
+
+# model 7 without calving season
+coxme9 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + factor(ad_Lactation) + I(PeakDFC/7) + (1|FarmNo), data=survival)
+AIC(coxme9) # 58814.04. AIC increases a lot, model 7 is better
+
 
 coxme1$loglik
 coxme2$loglik
@@ -845,17 +864,12 @@ anova(keto1.1, keto2) # keto1.1 = keto2
 ###########################
 ##      FINAL MODEL      ##
 ###########################
-coxme6 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
-coxme6
+coxme7 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + factor(ad_Lactation) + I(PeakDFC/7) + CalvingSeason + (1|FarmNo), data=survival)
+coxme7
+AIC(coxme7) # 58801.19 coxme7 is simpler than coxme6, AIC difference no more than 2 points
 
-AIC(coxme6) # 58800.51
 AIC(keto1) # 58813.51
 AIC(keto1.1) # 58809.45
-
-coxme7 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + (1|FarmNo), data=survival)
-coxme7
-
-anova(coxme6, coxme7) # model 6 is slightly better than model 7
 
 ```
 
@@ -880,26 +894,26 @@ lines(lowess(log(survival$AvgKeto20_100), resid.cox10))
 ##########################
 ##      FINAL MODEL     ##
 ##########################
-# check AvgKeto20_100 in coxme6
-coxme6 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
-coxme6
+# check AvgKeto20_100 in coxme7
+coxme7 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + factor(ad_Lactation) + I(PeakDFC/7) + CalvingSeason + (1|FarmNo), data=survival)
+coxme7
 
-me6.keto1 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~ MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
-res.keto1 <- resid(me6.keto1, type = "martingale")
+me7.keto1 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~ MaxKetoDIM60 + factor(ad_Lactation) + I(PeakDFC/7) + CalvingSeason + (1|FarmNo), data=survival)
+res.keto1 <- resid(me7.keto1, type = "martingale")
 plot(survival$AvgKeto20_100, res.keto1, main = "Residual of AvgKeto20_100")
 lines(lowess(survival$AvgKeto20_100, res.keto1), col = "red")
 
-# check MaxKetoDIM60 in coxme6
-me6.keto2 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
-res.keto2 <- resid(me6.keto2, type = "martingale")
+# check MaxKetoDIM60 in coxme7
+me7.keto2 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + factor(ad_Lactation) + I(PeakDFC/7) + CalvingSeason + (1|FarmNo), data=survival)
+res.keto2 <- resid(me7.keto2, type = "martingale")
 plot(survival$MaxKetoDIM60, res.keto2, main = "Residual of MaxKetoDIM60")
 lines(lowess(survival$MaxKetoDIM60, res.keto2), col = "red")
 
-# check ad_Lactation in coxme6
-me6.lact <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
-res.lact <- resid(me6.lact, type = "martingale")
-plot(survival$ad_Lactation, res.lact, main = "Residual of ad_Lactation")
-lines(lowess(survival$ad_Lactation, res.lact), col = "red")
+# check PeakDFC in coxme7
+me7.lact <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + factor(ad_Lactation) + CalvingSeason + (1|FarmNo), data=survival)
+res.lact <- resid(me7.lact, type = "martingale")
+plot(survival$PeakDFC, res.lact, main = "Residual of PeakDFC")
+lines(lowess(survival$PeakDFC, res.lact), col = "red")
 ```
 
 ```{r}
@@ -941,17 +955,17 @@ resid.coxme1[,1]
 ##########################
 ##      FINAL MODEL     ##
 ##########################
-# check AvgKeto20_100 in coxme6
-coxme6 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
-#coxme6
+# check AvgKeto20_100 in coxme7
+coxme7 <- coxme(Surv(DaysToFirstHeat, FirstHeat)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + I(PeakDFC/7) + CalvingSeason + (1|FarmNo), data=survival)
+#coxme7
 
-#print(coxme.fit6.I <- cox.zph(coxme6, transform = "identity"))
-#print(coxme.fit6.KM <- cox.zph(coxme6, transform = "km"))
-print(coxme.fit6.L <- cox.zph(coxme6, transform = "log"))
+#print(coxme.fit7.I <- cox.zph(coxme7, transform = "identity"))
+print(coxme.fit7.KM <- cox.zph(coxme7, transform = "km"))
+#print(coxme.fit7.L <- cox.zph(coxme7, transform = "log"))
 par(mfrow = c(1,3))
-#plot(coxme.fit6.I)
-#plot(coxme.fit6.KM)
-plot(coxme.fit6.L)
+#plot(coxme.fit7.I)
+plot(coxme.fit7.KM)
+#plot(coxme.fit7.L)
 ```
 
 ```{r}
@@ -1197,30 +1211,39 @@ coxme0
 coxme1 <- coxme(Surv(DaysToFirstIns, FirstAI)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme1
 
+AIC(coxme1) # 56686.7
+
 # lactation as continuous variable 
 coxme2 <- coxme(Surv(DaysToFirstIns, FirstAI)~AvgKeto20_100 + MaxKetoDIM60 + Lactation + PeakDFC + AvgMY60 + CalvingSeason + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme2
 anova(coxme1, coxme2) #almost the same
+
+AIC(coxme2) # 56683.34, COXME2 is better
 
 # remove CalvingSeason
 coxme3 <- coxme(Surv(DaysToFirstIns, FirstAI)~AvgKeto20_100 + MaxKetoDIM60 + ad_Lactation + PeakDFC + AvgMY60 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme3
 anova(coxme2, coxme3) #almost the same
 
+AIC(coxme3) # 56683.32
+
 # remove MaxKetoDIM60
 coxme4 <- coxme(Surv(DaysToFirstIns, FirstAI)~AvgKeto20_100 + ad_Lactation + PeakDFC + AvgMY60 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme4
 anova(coxme3, coxme4) # coxme3 and coxme4 are the same, coxme4 is simpler 
+AIC(coxme4) # 56682.94, coxme4 is simpler
 
 # remove ad_Lactation
 coxme5 <- coxme(Surv(DaysToFirstIns, FirstAI)~AvgKeto20_100 + PeakDFC + AvgMY60 + cut(CowNo, c(0, 100, 180, 1000)) + (1|FarmNo), data=survival)
 coxme5
 anova(coxme4, coxme5) # coxme4 and coxme5 are almost the same, coxme5 is simpler
+AIC(coxme5) # 56681.51, coxme5 is better
 
 # remove CowNo
 coxme6 <- coxme(Surv(DaysToFirstIns, FirstAI)~AvgKeto20_100 + PeakDFC + AvgMY60 + (1|FarmNo), data=survival)
 coxme6
 anova(coxme5, coxme6) # coxme5 and coxme6 are almost the same, coxme6 is simpler
+AIC(coxme6) # 56673.49, coxme6 is better
 
 #########################
 ##  Check Interaction  ##
