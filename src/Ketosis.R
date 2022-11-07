@@ -1,4 +1,4 @@
-df.keto01 <- read_excel("1001, All Data, Proc, June 2020.xlsx", sheet = "Ketosis")
+df.keto01 <- read_excel("../data/raw/1001, All Data, Proc, June 2020.xlsx", sheet = "Ketosis")
 summary(df.keto01)
 plot(df.keto01$DFC)
 
@@ -7,7 +7,7 @@ plot(df.keto01$DFC)
 
 all_keto_raw <- data.frame()
 for(i in 1001:1038){
-  filename <- paste("C:/Data/",i,", All Data, Proc, June 2020.xlsx", sep = "")
+  filename <- paste("../data/raw/",i,", All Data, Proc, June 2020.xlsx", sep = "")
   df.keto <- read_excel(filename, sheet = "Ketosis")
 
   all_keto_raw <- bind_rows(all_keto_raw, df.keto) %>%
@@ -17,7 +17,7 @@ for(i in 1001:1038){
 summary(all_keto_raw)
 rm(list=ls(pattern="df"))
 
-all_keto_raw$rDFC <- round(all_keto_raw$DFC)
+all_keto_raw$rDFC <- floor(all_keto_raw$DFC)
 summary(all_keto_raw)
 
 #filter out all the measurements after 20 DIM
@@ -114,6 +114,16 @@ names(df.max60d.all)[names(df.max60d.all) == "rDFC"] <- "MaxKetoDFC60"
 
 keto <- merge(df.keto6, df.max60d.all, c=by('FarmNo', 'CowId'), all.x=TRUE, all.y=TRUE)
 summary(keto)
+
+# onset of ketosis: mBHB >= 0.08
+df.onset.all <- all_keto_raw %>%
+  group_by(FarmNo, CowId) %>%
+  select(Parity, rDFC, BHBraw) %>%
+  mutate(OnSet = ifelse(BHBraw >= 0.08, BHBraw, max(BHBraw))) %>%
+  filter(BHBraw == OnSet) %>%
+  filter(rDFC == min(rDFC))
+
+
 rm(list=ls(pattern="df"))
 
 #if the cow does not have any value over 0.08 within 20 DFC, the number of High BHB measure = 0

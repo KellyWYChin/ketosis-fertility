@@ -307,7 +307,7 @@ for(i in 1001:1038){
 summary(all_keto_raw)
 rm(list=ls(pattern="df"))
 
-all_keto_raw$rDFC <- round(all_keto_raw$DFC)
+all_keto_raw$rDFC <- floor(all_keto_raw$DFC)
 # Change the column name "Parity" to "Lactation"
 colnames(all_keto_raw)[colnames(all_keto_raw) == "Parity"] <- "Lactation"
 summary(all_keto_raw) #161708 obs of 12 variables
@@ -322,7 +322,7 @@ df.avg20d.all <- all_keto_raw %>%
   select(Lactation, rDFC, BHBraw) %>%
   filter(rDFC <=20) %>% #91725 obs 5v
   mutate(AvgKeto20 = mean(BHBraw, na.rm = TRUE)) %>%
-  distinct(FarmNo, CowId, Lactation, AvgKeto20) #5068 obs of 4 variables
+  distinct(FarmNo, CowId, Lactation, AvgKeto20) #5070 obs of 4 variables
 
 ##############################################################
 # Avg milk ketone levels & Duration of ketosis within 20 DFC #
@@ -337,36 +337,36 @@ df.dur1_20 <- all_keto_raw %>%
             AvgKeto20_all = mean(BHBraw, na.rm = TRUE),
             MaxDFC = max(rDFC),
             MedianSampleTime = median(SamplingTime)) %>% 
-  mutate(KetoDur20 = sum(Days_20DFC, na.rm=TRUE)) #91725 obs of 11 variables
+  mutate(KetoDur20 = sum(Days_20DFC, na.rm=TRUE)) #92355 obs of 11 variables
 
 df.dur20 <- df.dur1_20 %>%
-  distinct(FarmNo, CowId, Lactation, KetoDur20, MedianSampleTime, AvgKeto20_all) #5068 obs of 6 variables
+  distinct(FarmNo, CowId, Lactation, KetoDur20, MedianSampleTime, AvgKeto20_all) #5070 obs of 6 variables
 
 # Test if cows cover 2 lactation are still involved in the dataset
 df.test <- df.dur20 %>%
-  filter(FarmNo == 1002, CowId == 581)
+  filter(FarmNo == 1002, CowId == 581) #yes
 
 ## Strictness of the days of measurement 
 # Select all cows that have the maxDFC above 10
 df.avg10_20d <- df.dur1_20 %>% 
-  filter(MaxDFC >= 10) %>% #91594 obs of 11 variables
+  filter(MaxDFC >= 10) %>% #92221 obs of 11 variables
   distinct(FarmNo, CowId, Lactation, 
-           AvgKeto20_all, KetoDur20, MedianSampleTime) #5035 obs of 6 variables
+           AvgKeto20_all, KetoDur20, MedianSampleTime) #5037 obs of 6 variables
 colnames(df.avg10_20d)[colnames(df.avg10_20d) == "AvgKeto20_all"] <- "AvgKeto20_atleast10"
 
 # Only select cows that have the maxDFC = 20
 df.avgmax20d <- df.dur1_20 %>%
-  filter(MaxDFC == 20) %>% #83951 obs of 11 variables
+  filter(MaxDFC == 20) %>% #88847 obs of 11 variables
   distinct(FarmNo, CowId, Lactation, 
-           AvgKeto20_all, KetoDur20, MedianSampleTime) #4524 obs of 6 variables
+           AvgKeto20_all, KetoDur20, MedianSampleTime) #4792 obs of 6 variables
 colnames(df.avgmax20d)[colnames(df.avgmax20d) == "AvgKeto20_all"] <- "AvgKeto20_atleast20"
 # Duplicated lactatrions cows exist?
 df.test <- df.avgmax20d %>%
-  filter(FarmNo == 1002, CowId == 581)
+  filter(FarmNo == 1002, CowId == 581) #yes
 
 # Merge data (Average 20DFC KETOSIS)
-df.keto1 <- merge(df.avg10_20d, df.avgmax20d, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoDur20'), all.x=TRUE, all.y=TRUE) #5035 obs of 7 variables
-df.keto2 <- merge(df.dur20, df.keto1, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoDur20'), all.x=TRUE, all.y=TRUE) #5068 ofbs of 8 variables
+df.keto1 <- merge(df.avg10_20d, df.avgmax20d, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoDur20'), all.x=TRUE, all.y=TRUE) #5037 obs of 7 variables
+df.keto2 <- merge(df.dur20, df.keto1, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoDur20'), all.x=TRUE, all.y=TRUE) #5070 ofbs of 8 variables
 
 ######################################################
 # When did the cow has the highest BHB within 20DFC? #
@@ -374,23 +374,37 @@ df.keto2 <- merge(df.dur20, df.keto1, by=c('FarmNo', 'CowId', 'Lactation', 'Medi
 df.max20d.all <- all_keto_raw %>%
   group_by(FarmNo, CowId, Lactation) %>%
   select(rDFC, BHBraw) %>%
-  filter(rDFC <= 20) %>% #91725 obs of 5 variables
+  filter(rDFC <= 20) %>% #92355 obs of 5 variables
   filter(BHBraw == max(BHBraw)) #5105 obs of 5 variables
 names(df.max20d.all)[names(df.max20d.all) == "BHBraw"] <- "MaxKeto20"
 names(df.max20d.all)[names(df.max20d.all) == "rDFC"] <- "MaxKetoDFC20"
 
-df.keto3 <- merge(df.keto2, df.max20d.all, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5105 obs of 10 variables
+df.keto3 <- merge(df.keto2, df.max20d.all, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5107 obs of 10 variables
 
 ##########################################
 # Number of times BHB>0.08 within 20 DFC #
 ##########################################
 df.highketo.20d <- df.dur1_20 %>%
-  filter(BHBraw >= 0.08) %>% #21443 obs of 11 variables
+  filter(BHBraw >= 0.08) %>% #21720 obs of 11 variables
   group_by(FarmNo, CowId, Lactation) %>%
   mutate(nHighKeto20 = n()) %>%
-  distinct(FarmNo, CowId, Lactation, nHighKeto20) #3028 obs of 4 variables
+  distinct(FarmNo, CowId, Lactation, nHighKeto20) #3042 obs of 4 variables
 
-df.ketosis20 <- merge(df.keto3, df.highketo.20d, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5105 obs of 11 variables
+df.ketosis20 <- merge(df.keto3, df.highketo.20d, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5107 obs of 11 variables
+
+###########################################
+####  Onset of ketosis within 20 DFC   ####
+###########################################
+#  OnSet = The earliest day when BHB >= 0.08 or the earliest day when BHB reached the highest
+
+df.onset20 <- all_keto_raw %>%
+  filter(rDFC <= 20) %>%
+  group_by(FarmNo, CowId) %>%
+  select(Lactation, rDFC, BHBraw) %>%
+  mutate(OnSet = ifelse(BHBraw >= 0.08, BHBraw, max(BHBraw))) %>%
+  filter(BHBraw == OnSet) %>%
+  filter(rDFC == min(rDFC)) #5446 obs of 6 variables
+
 
 ###########
 # 60 days #
@@ -889,8 +903,9 @@ sum(df.farm$CowNo[df.farm$HerdSize == "Median"])
 
 # Number of cows in each calving season
 ggplot(data=Three, aes(x=factor(CalvingSeason))) +
-  geom_bar(stat="count", fill="darkred") +
-  stat_count(geom="text", size=5, aes(label=..count..)) +
+  geom_bar(stat="count", fill="royalblue1") +
+  stat_count(geom="text", size=5, aes(label=..count..), vjust = -0.5) +
+  ylim(0, 1100) +
   ggtitle("Number of Cows in Calving Seasons") +
   theme_classic() +
   xlab("Calving Seasons")
@@ -911,10 +926,11 @@ ggplot(data=Three, aes(x=factor(Lactation)))+
 Three$ad_Lactation <- as.factor(Three$ad_Lactation)
 ggplot(data=Three, aes(x=factor(ad_Lactation)))+
   geom_bar(stat="count", fill="skyblue") +
-  stat_count(geom="text", size=5, aes(label=..count..)) +
+  stat_count(geom="text", size=4, aes(label=..count..), vjust = -0.5) +
   ggtitle("Number of Cows in 4 Parity Categories") +
+  ylim(0, 1300) +
   theme_classic() +
-  xlab("Parity, 4 means 4+") +
+  xlab("Parity") +
   ylab("#cows")
 
 # Culled cows during the cohort
@@ -987,11 +1003,12 @@ ggplot(data=Three, aes(x=DaysToLastIns)) +
 Three$NumAI <- as.factor(Three$NumAI)
 ggplot(data=Three, aes(x=factor(NumAI)))+
   geom_bar(stat="count", fill="pink") +
-  stat_count(geom="text", size=3, aes(label=..count..)) +
+  stat_count(geom="text", size=4, aes(label=..count..), vjust = -0.5) +
   ggtitle("Number of AI Distribution") +
   theme_classic() +
-  xlab("number of AI") +
-  ylab("#cows")
+  xlab("Number of AIs") +
+  ylab("#cows") +
+  ylim(0, 1400)
 Three$NumAI <- as.numeric(Three$NumAI)
 summary(Three$NumAI)
 ```
@@ -1005,7 +1022,7 @@ ggplot(data=Three, aes(x=PeakDFC)) +
   geom_histogram(breaks=seq(0, 305, by=20),
                  fill="royalblue1") +
   facet_wrap(Three$ad_Lactation, ncol = 4) +
-  ggtitle("DIM when highest peak yield was achieved") +
+  ggtitle("DIM when milk yield reached the peak") +
   xlab("DIM") +
   ylab("#cows") +
   theme_classic()
@@ -1013,7 +1030,7 @@ ggplot(data=Three, aes(x=PeakDFC)) +
 ggplot(data=Three, aes(x=PeakDFC)) +
   geom_histogram(breaks=seq(0, 305, by=10),
                  fill="royalblue1") +
-  ggtitle("DIM when highest peak yield was achieved") +
+  ggtitle("DIM when milk yield reached the peak") +
   xlab("DIM") +
   ylab("#cows") +
   theme_classic()
@@ -1094,7 +1111,7 @@ mean(df.parity4$SumMY20, na.rm = T)
 summary(Three$AvgMY60)
 ggplot(data=Three, aes(x=AvgMY60)) +
   geom_histogram(breaks=seq(0, 70, by=3),
-                 fill="blue", alpha = 0.2) +
+                 fill="blue", alpha = 0.5) +
   ggtitle("Average milk yield within 60 DIM") +
   xlab("Milk yield (kg)") +
   ylab("#cows") +
@@ -1120,7 +1137,7 @@ mean(df.parity4$AvgMY60, na.rm = T)
 summary(Three$SumMY60)
 ggplot(data=Three, aes(x=SumMY60)) +
   geom_histogram(breaks=seq(330, 4400, by=100),
-                 fill="blue", alpha = 0.2) +
+                 fill="blue", alpha = 0.3) +
   ggtitle("Cumulative milk yield within 60 DIM") +
   xlab("Milk yield (kg)") +
   ylab("#cows") +
@@ -1141,6 +1158,9 @@ mean(df.parity1$SumMY60, na.rm = T)
 mean(df.parity2$SumMY60, na.rm = T)
 mean(df.parity3$SumMY60, na.rm = T)
 mean(df.parity4$SumMY60, na.rm = T)
+
+summary(Three$PeakDFC)
+summary(Three$AvgMY60)
 ```
 
 ## Ketosis parameters
@@ -1175,10 +1195,20 @@ ggplot(data=Three, aes(x=MaxKetoDIM60)) +
   geom_histogram(breaks=seq(0, 60, by=0.5),
                  fill="blue", alpha = 0.3) +
   ggtitle("DIM when milk BHB reached the max within 60 DIM") +
-  stat_count(geom="text", size=3, aes(label=..count..)) +
-  xlab("day") +
+  stat_count(geom="text", size=3, aes(label=..count..), vjust = 0.1) +
+  xlab("DIM") +
   ylab("#cows") +
   theme_classic()
+
+summary(Three$AvgKeto20_atleast10)
+ggplot(data = Three, aes(x = AvgKeto20_atleast10)) +
+  geom_histogram(breaks = seq(0, 0.45, by =0.01),
+                 fill = "darkgreen", alpha = 0.8) +
+  ggtitle("Average milk BHB within 20 DIM") +
+  xlab("Average milk BHB (mmol/L)") +
+  ylab("#cows") +
+  theme_classic()+
+  geom_vline(xintercept=0.08, color="red", linetype = "dashed")
 
 # how many cows got their max within 20 days and how many cows got their max later? (percentage)
 summary(Three$MaxKetoDIM60)
@@ -1209,6 +1239,28 @@ TukeyHSD(df.fit3.post)
 summary(Three$MaxKetoDIM60)
 
 boxplot(Three$DaysToFirstHeat~Three$CalvingSeason, ylab = "Days from calving to first recognized heat", xlab = "Calving season")
+
+## whether the maximum BHB level is over 0.08 mmol/L?
+keto <- Three %>%
+  mutate(MaxKetoKeto1 = ifelse(Three$MaxKeto20 >= 0.08, 1, 0), .after="MaxKeto20") %>%
+  mutate(MaxKetoKeto2 = ifelse(Three$MaxKeto60 >= 0.08, 1, 0), .after="MaxKeto60")
+#DIM where cows reached the highest milk BHB within 60 DIM
+summary(keto$MaxKetoDFC60)
+ggplot(data=keto, aes(x=MaxKetoDFC60)) +
+  geom_bar(stat = "count", fill="orange")+
+  stat_count(geom = "text", size= 2, aes(label=..count..)) +
+  ggtitle("DIM where cows reached the highest milk BHB within 60 DIM") + xlab("DIM")
+#separate with max BHB over 0.08 or not with colors
+df.table2 <- as.data.frame(table(keto$MaxKetoDIM60, keto$MaxKetoKeto2))
+ggplot(data=df.table2, aes(x=Var1, y=Freq, fill=Var2)) +
+  geom_bar(stat="identity") +
+  geom_text(aes(label=Freq), position = position_stack(vjust=0.5), size = 2) +
+  ggtitle("DIM when milk BHB reached the maximum within 60 d") +
+  xlab("DIM") +
+  ylab("#cows") +
+  scale_fill_manual(labels = c("no", "yes"), values = c("light blue", "pink"), name="max BHB > 0.08 mmol/L") +
+  theme_classic() +
+  theme(axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5, hjust=1))
 
 ```
 
