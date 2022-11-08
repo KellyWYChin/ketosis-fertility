@@ -1042,6 +1042,7 @@ corrplot(cor.keto.milk,
          addCoef.col = "black", number.cex = 0.75,
          type = "lower")
 ```
+
 ## Ketosis + MY parameters - AvgKeto20_atleast10 vs AvgMY20
 ```{r}
 plot(Three$AvgKeto20_atleast10, Three$AvgMY20, 
@@ -1100,6 +1101,7 @@ cor.test(df.parity2$AvgMY20, df.parity2$AvgKeto20_atleast10, use = "complete.obs
 cor.test(df.parity3$AvgMY20, df.parity3$AvgKeto20_atleast10, use = "complete.obs", method = "spearman")
 cor.test(df.parity4$AvgMY20, df.parity4$AvgKeto20_atleast10, use = "complete.obs", method = "spearman")
 ```
+
 ## Ketosis + MY parameters - AvgKeto60_atleast10 vs AvgMY60
 ```{r}
 plot(Three$AvgKeto60_atleast10, Three$AvgMY60, 
@@ -1159,7 +1161,6 @@ cor.test(df.parity3$AvgKeto60_atleast10, df.parity3$AvgMY60, use = "complete.obs
 cor.test(df.parity4$AvgKeto60_atleast10, df.parity4$AvgMY60, use = "complete.obs", method = "spearman")
 ```
 
-
 # Multivariable
 ## Repro + keto + milk parameters
 ```{r}
@@ -1198,7 +1199,7 @@ pairs.panels(milk,
 # Correlation of ketosis data
 ```{r}
 ketosis <- Three %>%
-  select(AvgKeto20_100, KetoDur20, nHighKeto20, MaxKeto20, MaxKetoDIM20, MaxKetoDIM60)
+  select(AvgKeto20_100, KetoDur20, nHighKeto20, MaxKeto20, MaxKetoDIM60)
 pairs.panels(ketosis,
              smooth = TRUE,      # If TRUE, draws loess smooths
              scale = FALSE,      # If TRUE, scales the correlation text font
