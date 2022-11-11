@@ -390,7 +390,7 @@ df.highketo.20d <- df.dur1_20 %>%
   mutate(nHighKeto20 = n()) %>%
   distinct(FarmNo, CowId, Lactation, nHighKeto20) #3042 obs of 4 variables
 
-df.ketosis20 <- merge(df.keto3, df.highketo.20d, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5107 obs of 11 variables
+df.keto4 <- merge(df.keto3, df.highketo.20d, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5107 obs of 11 variables
 
 ###########################################
 ####  Onset of ketosis within 20 DFC   ####
@@ -398,13 +398,19 @@ df.ketosis20 <- merge(df.keto3, df.highketo.20d, by=c('FarmNo', 'CowId', 'Lactat
 #  OnSet = The earliest day when BHB >= 0.08 or the earliest day when BHB reached the highest
 
 df.onset20 <- all_keto_raw %>%
+  group_by(FarmNo, CowId, Lactation) %>%
   filter(rDFC <= 20) %>%
-  group_by(FarmNo, CowId) %>%
   select(Lactation, rDFC, BHBraw) %>%
-  mutate(OnSet = ifelse(BHBraw >= 0.08, BHBraw, max(BHBraw))) %>%
-  filter(BHBraw == OnSet) %>%
-  filter(rDFC == min(rDFC)) #5446 obs of 6 variables
+  mutate(Onset = ifelse(BHBraw >= 0.08, BHBraw, max(BHBraw))) %>%
+  filter(BHBraw == Onset) %>%
+  filter(rDFC == min(rDFC)) %>%
+  distinct(FarmNo, CowId, Lactation, rDFC, .keep_all = T) %>%
+  mutate(onset20 = ifelse(Onset >= 0.08, rDFC, 21)) #5016 obs of 7 variables
+df.onset20$rDFC <- NULL
+df.onset20$BHBraw <- NULL
+df.onset20$Onset <- NULL
 
+df.ketosis20 <- merge(df.keto4, df.onset20, by=c('FarmNo', 'CowId', 'Lactation'), all.x = TRUE, all.y = TRUE, sort = F) #5107 of 12 variables
 
 ###########
 # 60 days #
@@ -417,13 +423,13 @@ df.dur1_60 <- data.frame()
 df.dur1_60 <- all_keto_raw %>%
   group_by(FarmNo, CowId, Lactation) %>%
   select(DFC, rDFC, BHBraw, SamplingTime) %>%
-  filter(rDFC <= 60) %>% #159632 obs of 7v
+  filter(rDFC <= 60) %>% #160628 obs of 7v
   summarise(DFC, rDFC, Lactation, BHBraw,
             Days_60DFC = ifelse(BHBraw >= 0.08, rDFC - lag(rDFC), 0), #Hours_60DFC = if single measure of BHBraw is over 0.08, the duration of BHBraw over 0.08 will be calculated in hours
             AvgKeto60_all = mean(BHBraw, na.rm = TRUE),
             MaxDFC60 = max(rDFC),
             MedianSampleTime = median(SamplingTime)) %>% 
-  mutate(KetoDur60 = sum(Days_60DFC, na.rm=TRUE)) #159632 obs of 11 variables
+  mutate(KetoDur60 = sum(Days_60DFC, na.rm=TRUE)) #160628 obs of 11 variables
 
 df.cow <- df.dur1_60 %>%
   distinct(FarmNo, CowId) #5,107 cows
@@ -433,14 +439,14 @@ df.dur60 <- df.dur1_60 %>%
 
 # Test if cows cover 2 lactation are still involved in the dataset
 df.test <- df.dur60 %>%
-  filter(FarmNo == 1002, CowId == 581)
+  filter(FarmNo == 1002, CowId == 581) #YES
 
 ## Strictness of the days of measurement 
 # Select all cows that have the maxDFC above 10
 df.avg10_60d <- df.dur1_60 %>% 
-  filter(MaxDFC60 >= 10) %>% #159526 obs of 11 variables
+  filter(MaxDFC60 >= 10) %>% #160513 obs of 11 variables
   distinct(FarmNo, CowId, Lactation, 
-           AvgKeto60_all, KetoDur60, MedianSampleTime) #5068 obs of 6 variables
+           AvgKeto60_all, KetoDur60, MedianSampleTime) #5080 obs of 6 variables
 colnames(df.avg10_60d)[colnames(df.avg10_60d) == "AvgKeto60_all"] <- "AvgKeto60_atleast10"
 
 # Only select cows that have the maxDFC >= 30
@@ -454,7 +460,7 @@ df.test <- df.avgmax60d %>%
   filter(FarmNo == 1002, CowId == 581)
 
 # Merge data (Average 60DFC KETOSIS)
-df.keto1 <- merge(df.avg10_60d, df.avgmax60d, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoDur60'), all.x=TRUE, all.y=TRUE) #5081 obs of 7 variables
+df.keto1 <- merge(df.avg10_60d, df.avgmax60d, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoDur60'), all.x=TRUE, all.y=TRUE) #5080 obs of 7 variables
 df.keto2 <- merge(df.dur60, df.keto1, by=c('FarmNo', 'CowId', 'Lactation', 'MedianSampleTime', 'KetoDur60'), all.x=TRUE, all.y=TRUE) #5107 ofbs of 8 variables
 
 ######################################################
@@ -479,7 +485,26 @@ df.highketo.60d <- df.dur1_60 %>%
   mutate(nHighKeto60 = n()) %>%
   distinct(FarmNo, CowId, Lactation, nHighKeto60) #3805 obs of 4 variables
 
-df.ketosis60 <- merge(df.keto3, df.highketo.60d, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5121 obs of 11 variables
+df.keto4 <- merge(df.keto3, df.highketo.60d, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5121 obs of 11 variables
+
+###########################################
+####  Onset of ketosis within 60 DFC   ####
+###########################################
+#  OnSet = The earliest day when BHB >= 0.08 or the earliest day when BHB reached the highest
+df.onset60 <- all_keto_raw %>%
+  group_by(FarmNo, CowId, Lactation) %>%
+  filter(rDFC <= 60) %>%
+  select(Lactation, rDFC, BHBraw) %>%
+  mutate(Onset = ifelse(BHBraw >= 0.08, BHBraw, max(BHBraw))) %>%
+  filter(BHBraw == Onset) %>%
+  filter(rDFC == min(rDFC)) %>%
+  distinct(FarmNo, CowId, Lactation, rDFC, .keep_all = T) %>%
+  mutate(onset60 = ifelse(Onset >= 0.08, rDFC, 61)) #5050 obs of 4 variables
+df.onset60$rDFC <- NULL
+df.onset60$BHBraw <- NULL
+df.onset60$Onset <- NULL
+
+df.ketosis60 <- merge(df.keto4, df.onset60, by = c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5121 obs 12variables
 
 # if the cow does not have any value over 0.08 within 20 DFC, the number of High BHB measure = 0
 df.ketosis20$nHighKeto20 <- ifelse((!is.na(df.ketosis20$MaxKeto20) & (df.ketosis20$MaxKeto20 < 0.08)), 0, df.ketosis20$nHighKeto20)
@@ -489,7 +514,7 @@ df.ketosis60$nHighKeto60 <- ifelse((!is.na(df.ketosis60$MaxKeto60) & (df.ketosis
 #########################################
 # Merge all ketosis variables (20 + 60) #
 #########################################
-ketosis <- merge(df.ketosis20, df.ketosis60, by = c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5164 obs of 19 variables
+ketosis <- merge(df.ketosis20, df.ketosis60, by = c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5164 obs of 21 variables
 rm(list = ls(pattern = "df"))
 ```
 
@@ -815,7 +840,7 @@ Three <- Three %>%
 
 # Add calving year
 Three <- Three %>%
-  mutate(CalvingYear = format(CalvingDate, format = "%Y")) #4327 obs of 65v
+  mutate(CalvingYear = format(CalvingDate, format = "%Y")) #4041 obs of 67v
 ```
 ```{r, warning=FALSE}
 #################
@@ -854,7 +879,7 @@ quantile(df.cowno$CowNo, c(0.25, 0.5, 0.75))
 ### Number of cows in each farm
 Three <- merge(Three, df.cowno, by = c('FarmNo'), sort = F) 
 Three <- Three %>%
-  relocate(CowNo, .after = FarmNo) #4041 obs 66v
+  relocate(CowNo, .after = FarmNo) #4041 obs 68v
 ```
 
 ## Make an excel file for prepared data
@@ -870,11 +895,13 @@ colnames(Three)[colnames(Three) == "MaxKetoDFC20"] <- "MaxKetoDIM20"
 colnames(Three)[colnames(Three) == "MaxKetoDFC60"] <- "MaxKetoDIM60"
 
 write_xlsx(Three, "../data/raw/Three.xlsx")
+
 ```
 
 ## General Info and reproduction parameters
 ```{r, warning=FALSE}
 # Number of cows in the farm
+Three <- read_excel("../data/raw/Three.xlsx")
 Three$FarmNo <- as.factor(Three$FarmNo)
 ggplot(data=Three, aes(x=fct_rev(fct_infreq(FarmNo)))) +
   geom_bar(stat="count", fill="orange") +
