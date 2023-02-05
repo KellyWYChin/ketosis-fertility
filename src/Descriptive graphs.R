@@ -41,7 +41,8 @@ ggplot(data=Three, aes(x=factor(Lactation)))+
 df.20keto <- Three %>%
   select(FarmNo, CowId, ad_Lactation, CalvingSeason, KetoDur20,
          AvgKeto20_100, MaxKetoDIM20, MaxKeto20, nHighKeto20, onset20) %>%
-  mutate(KetoCow = ifelse(AvgKeto20_100 >= 8, "Yes", "No"))
+  mutate(KetoCow = ifelse(AvgKeto20_100 >= 8, "Yes", "No")) %>%
+  filter(onset20 >= 3 & onset20 <= 20)
 
 # plot onset of ketosis within 20 DIM
 ggplot(data = df.20keto, aes(x=factor(onset20))) +
@@ -52,6 +53,25 @@ ggplot(data = df.20keto, aes(x=factor(onset20))) +
   ylab("Number of cows")
 
 summary(df.20keto$onset20[df.20keto$onset20 <= 20])
+summary(survival)
+
+# plot when the MAX BHB happened within 20 DIM
+ggplot(data = df.20keto, aes(x=factor(MaxKetoDIM20))) +
+  geom_bar(stat = "count", fill = "gray") +
+  stat_count(geom = "text", size = 3, aes(label = ..count..))+
+  theme_classic() +
+  xlab("DIM when Max BHB happened within 20 DIM (DIM)") +
+  ylab("Number of cows")
+
+summary(df.20keto$MaxKetoDIM20[df.20keto$MaxKetoDIM20 <= 20])
+
+# plot when the MAX BHB happened within 20 DIM grouped by avg ketosis levels
+ggplot(data = df.20keto, aes(x=factor(MaxKetoDIM20), fill = KetoCow)) +
+  geom_bar(stat = "count", position = "stack") +
+  stat_count(geom = "text", size = 3, aes(label = ..count..))+
+  theme_classic() +
+  xlab("DIM when Max BHB happened within 20 DIM (DIM)") +
+  ylab("Number of cows")
 
 # plot onset of ketosis within 20 d grouped by avg ketosis levels
 ggplot(data = df.20keto, aes(x=factor(onset20), fill = KetoCow))+
@@ -133,7 +153,6 @@ plot(Three$AvgKeto20_atleast10, Three$KetoDur20,
 abline(v = 0.08, col = "red")
 abline(lm(Three$KetoDur20~Three$AvgKeto20_atleast10), col = "blue")
 
-
 plot(Three$AvgKeto20_atleast10, Three$MaxKetoDIM20,
      main = "Scatterplot of Avg milk BHB and max milk BHB within 20 DIM",
      ylab = "DIM of max milk BHB (mmol/L)",
@@ -142,7 +161,6 @@ abline(v = 0.08, col = "red")
 abline(lm(Three$MaxKetoDIM20~Three$AvgKeto20_atleast10), col = "blue")
 
 boxplot(Three$DaysToFirstIns~Three$ad_Lactation, ylab = "Days from calving to first insemination", xlab = "Parity")
-
 
 ############################################################
 # create a dataframe with ketosis parameters within 60 DIM #
@@ -175,3 +193,11 @@ corrplot(cor.keto20,
          title = "\n\n Correlation plot of ketosis parameters in 20 d",
          addCoef.col = "black",
          type = "lower")
+
+# plot days to CLA with onset of ketosis within 20 d
+plot(df1$DaysToCLA~df1$onset20)
+ggplot(data = df.20keto.repro, aes(x = factor(onset20), y = DaysToCLA)) +
+  geom_boxplot() +
+  xlab("Onset of ketosis within 20 DIM (DIM)") +
+  ylab("Days from calving to resumption of cyclicity") +
+  theme_classic()

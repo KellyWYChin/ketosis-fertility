@@ -375,9 +375,10 @@ df.max20d.all <- all_keto_raw %>%
   group_by(FarmNo, CowId, Lactation) %>%
   select(rDFC, BHBraw) %>%
   filter(rDFC <= 20) %>% #92355 obs of 5 variables
-  filter(BHBraw == max(BHBraw)) #5105 obs of 5 variables
+  filter(BHBraw == max(BHBraw)) %>% 
+  mutate(MaxKetoDFC20 = ifelse(BHBraw >= 0.08, rDFC, 21)) #5107 obs of 6 variables
 names(df.max20d.all)[names(df.max20d.all) == "BHBraw"] <- "MaxKeto20"
-names(df.max20d.all)[names(df.max20d.all) == "rDFC"] <- "MaxKetoDFC20"
+df.max20d.all$rDFC <- NULL
 
 df.keto3 <- merge(df.keto2, df.max20d.all, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5107 obs of 10 variables
 
@@ -470,9 +471,10 @@ df.max60d.all <- all_keto_raw %>%
   group_by(FarmNo, CowId, Lactation) %>%
   select(rDFC, BHBraw) %>%
   filter(rDFC <= 60) %>% #159632 obs of 5 variables
-  filter(BHBraw == max(BHBraw)) #5121 obs of 5 variables
+  filter(BHBraw == max(BHBraw)) %>%
+  mutate(MaxKetoDFC60 = ifelse(BHBraw >= 0.08, rDFC, 61)) #5121 obs of 6 variables
 names(df.max60d.all)[names(df.max60d.all) == "BHBraw"] <- "MaxKeto60"
-names(df.max60d.all)[names(df.max60d.all) == "rDFC"] <- "MaxKetoDFC60"
+df.max60d.all$rDFC <- NULL
 
 df.keto3 <- merge(df.keto2, df.max60d.all, by=c('FarmNo', 'CowId', 'Lactation'), all.x=TRUE, all.y=TRUE, sort = F) #5121 obs of 10 variables
 
@@ -1288,6 +1290,5 @@ ggplot(data=df.table2, aes(x=Var1, y=Freq, fill=Var2)) +
   scale_fill_manual(labels = c("no", "yes"), values = c("light blue", "pink"), name="max BHB > 0.08 mmol/L") +
   theme_classic() +
   theme(axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5, hjust=1))
-
 ```
 
